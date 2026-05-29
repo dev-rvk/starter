@@ -9,6 +9,8 @@ integrations (Clerk, Stripe, analytics, email, error tracking). A re-platform of
 
 ```bash
 make setup      # install deps + tools, generate code
+make deps-up    # start local PostgreSQL (Docker)
+make migrate    # apply database migrations
 make dev        # run everything
 ```
 
@@ -28,6 +30,59 @@ Only **Clerk** (auth) and **PostgreSQL** are needed for the full experience —
 every other integration is a feature toggle that stays inert until its key is
 set. Without `DATABASE_URL` the API uses an in-memory store; without Clerk keys
 auth is bypassed in dev, so the stack always boots from a fresh clone.
+
+## Local dependencies (Docker)
+
+Backing services run via Docker Compose. The flow is **local ↔ hosted by URL**:
+run a container locally and point the env var at `localhost`, or skip the
+container and point the same var at a managed provider — no code changes.
+
+```bash
+make deps-up        # start core services (postgres)
+make deps-up-all    # also start redis + mailpit (opt-in profiles)
+make deps-down      # stop (keep data)
+make deps-reset     # stop and delete data volumes
+make deps-logs      # tail logs
+```
+
+| Service | Local (compose) | Hosted equivalent | Status |
+|---------|-----------------|-------------------|--------|
+| PostgreSQL | `postgres` :5433 | Neon · Supabase · RDS | wired today |
+| Redis | `redis` :6379 (profile `cache`) | Upstash · Elasticache | scaffold |
+| Mailpit (SMTP) | `mailpit` :8025 UI (profile `mail`) | Resend (HTTP API) | scaffold |
+
+To go hosted, e.g. swap Postgres: stop the local one (or just ignore it) and set
+`DATABASE_URL` in `apps/api/.env.local` to your Neon/Supabase connection string.
+
+## Configure features
+
+Every integration is a feature toggle — set its key to enable it, leave it blank
+to keep it off. Copy the templates first:
+
+```bash
+cp apps/api/.env.example apps/api/.env.local
+cp apps/app/.env.example apps/app/.env.local
+cp apps/web/.env.example apps/web/.env.local
+```
+
+| Feature | What it does | Get keys | Env var(s) → file |
+|---------|--------------|----------|-------------------|
+| **PostgreSQL** *(needed)* | App database | `make deps-up` (local) or [Neon](https://neon.tech) | `DATABASE_URL` → `apps/api/.env.local` |
+| **Clerk** *(needed)* | Authentication | [clerk.com](https://clerk.com) → API Keys | `CLERK_SECRET_KEY` → api · `VITE_CLERK_PUBLISHABLE_KEY` → app |
+| **Stripe** | Payments (planned) | [dashboard.stripe.com](https://dashboard.stripe.com) | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` → api |
+| **Sentry** | Error tracking | [sentry.io](https://sentry.io) | `SENTRY_DSN` → api · `VITE_SENTRY_DSN` → app |
+| **Resend** | Transactional email | [resend.com](https://resend.com) | `RESEND_TOKEN`, `RESEND_FROM` → api |
+| **Google Analytics** | Web analytics (free tier) | GA4 property | `VITE_GA_MEASUREMENT_ID` → app/web |
+| **PostHog** | Product analytics (self-host) | your PostHog instance | `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST` → app/web |
+
+**Minimum to boot:** nothing — the API falls back to in-memory and auth is
+bypassed in dev. For the full experience, set `DATABASE_URL` + the two Clerk keys.
+
+**Removed from next-forge** (re-add as packages if you need them): Arcjet
+(security), BetterStack (use Prometheus/Grafana later), BaseHub (CMS).
+
+See [starterpack-docs/setup.md](./starterpack-docs/setup.md#environment-variables--feature-toggles)
+for the full matrix and per-service detail.
 
 ## Documentation
 

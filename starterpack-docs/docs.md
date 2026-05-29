@@ -83,9 +83,15 @@ package (no Next.js deps):
    `./lib/utils`, `./styles/globals.css`.
 2. `components.json` (shadcn, style `new-york`, aliases pointing at
    `@repo/design-system/*` so generated components resolve when consumed by apps).
-3. `src/styles/globals.css` — Tailwind v4 import, CSS-variable **design tokens**
-   (light/dark), and `@source` globs so the single stylesheet scans both the
-   package and `apps/**` (Tailwind v4 does not scan `node_modules`).
+3. `src/styles/globals.css` — Tailwind v4 `@theme` with **hex design tokens**:
+   shadcn semantic tokens (`--color-background`, `--color-primary`, …) +
+   sidebar/chart tokens, a **brand** scale (`--color-brand-*`), neutrals,
+   semantic colors (success/warning/danger/info) and **fonts** (Inter / Cal Sans
+   / JetBrains Mono). Dark mode overrides the same `--color-*` names under
+   `.dark` in `@layer base`. `@source` globs let the single stylesheet scan the
+   package and `apps/**` (Tailwind v4 does not scan `node_modules`). Inter +
+   JetBrains Mono load via Google Fonts `<link>`s in each app's `index.html` and
+   Storybook's `preview-head.html`; add Cal Sans manually to use `font-display`.
 4. `src/lib/utils.ts` (`cn`), `src/components/theme-provider.tsx` (next-themes,
    works in Vite SPAs), `src/components/mode-toggle.tsx`.
 5. Generate all components: `bunx shadcn@latest add --all -c packages/design-system`.
@@ -192,6 +198,25 @@ inert and the app still runs.
 
 Backend toggles live in `apps/api/internal/config/config.go` (each has
 `Enabled()`); frontend toggles in `apps/<app>/src/features.ts`.
+
+## Local dependencies (Docker)
+
+`docker-compose.yml` defines local backing services, managed via the Makefile
+(`make deps-up` / `deps-up-all` / `deps-down` / `deps-reset` / `deps-logs`). The
+design is **local ↔ hosted by URL**: run a container and point the env var at
+`localhost`, or skip it and point the same var at a managed provider — no code
+change, since the apps only read from env.
+
+| Service | Local (compose) | Profile | Hosted equivalent | Status |
+|---------|-----------------|---------|-------------------|--------|
+| PostgreSQL | `postgres` :5433 | (core) | Neon · Supabase · RDS | wired today |
+| Redis | `redis` :6379 | `cache` | Upstash · Elasticache | scaffold for caching/rate-limit |
+| Mailpit | `mailpit` :8025 (UI) | `mail` | Resend (HTTP API) | scaffold for local SMTP testing |
+
+Core (`postgres`) starts with `docker compose up`; the others are behind profiles
+so they only run when asked. To add another dependency, add a service (behind a
+profile if optional), document its local URL and hosted equivalent, and read its
+URL from env in the relevant config — mirroring the Postgres pattern.
 
 ## Deferred (intentionally not in this pass)
 

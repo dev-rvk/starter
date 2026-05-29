@@ -66,15 +66,32 @@ full experience set `DATABASE_URL` and the Clerk keys above.
 app/web dev URLs). `apps/app/.env.local` has `VITE_API_URL` (default
 `http://localhost:3002`); `apps/web/.env.local` has `VITE_APP_URL`.
 
-## Database setup
+## Local dependencies (Docker Compose)
 
-Start PostgreSQL (Docker example):
+`docker-compose.yml` defines local backing services, driven by the Makefile:
 
 ```bash
-docker run -d --name starterpack-pg \
-  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=starterpack \
-  -p 5433:5432 postgres:16-alpine
+make deps-up        # core (postgres :5433)
+make deps-up-all    # also redis (:6379, profile cache) + mailpit (:8025, profile mail)
+make deps-down      # stop, keep data
+make deps-reset     # stop and delete data volumes
+make deps-logs      # tail logs
 ```
+
+**Local ↔ hosted flow:** each dependency is a local container *or* a managed
+provider — whichever its env var points at. Run `make deps-up` for local, or set
+the var to a hosted URL (Neon/Supabase for DB, Upstash for Redis, Resend for
+email) and skip the container. No code changes; the apps only read env. Add a new
+dependency by adding a service (behind a profile if optional) and reading its URL
+from env — mirroring the Postgres pattern.
+
+| Service | Local | Profile | Hosted equivalent |
+|---------|-------|---------|-------------------|
+| PostgreSQL | `postgres` :5433 | core | Neon · Supabase · RDS |
+| Redis | `redis` :6379 | `cache` | Upstash |
+| Mailpit (SMTP) | `mailpit` :8025 UI | `mail` | Resend (HTTP API) |
+
+## Database setup
 
 Set `DATABASE_URL` in `apps/api/.env.local`, e.g.
 `postgres://postgres:postgres@localhost:5433/starterpack?sslmode=disable`, then:

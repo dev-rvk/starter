@@ -45,9 +45,14 @@ system; links to the app via `VITE_APP_URL`.
 
 **Contents**:
 - `src/components/ui/*` — ~56 shadcn components.
-- `src/styles/globals.css` — CSS-variable **design tokens** (light/dark) +
-  `@theme` mapping + `@source` globs so the one stylesheet scans the package and
-  `apps/**` (Tailwind v4 ignores `node_modules`).
+- `src/styles/globals.css` — Tailwind v4 `@theme` with **hex design tokens**:
+  shadcn semantic tokens + sidebar/chart, a **brand** scale (`--color-brand-*`),
+  neutrals, semantic colors (success/warning/danger/info), and **fonts**
+  (`--font-sans` Inter, `--font-display` Cal Sans, `--font-mono` JetBrains Mono).
+  Dark mode overrides the same `--color-*` names under `.dark` in `@layer base`.
+  `@source` globs make the one stylesheet scan the package and `apps/**`
+  (Tailwind v4 ignores `node_modules`). Fonts load via Google Fonts `<link>`s in
+  each app's `index.html` / Storybook `preview-head.html` (add Cal Sans manually).
 - `src/lib/utils.ts` — `cn` helper.
 - `src/components/theme-provider.tsx` — next-themes (works in Vite SPAs);
   `mode-toggle.tsx` — light/dark/system switch.

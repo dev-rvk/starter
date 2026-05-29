@@ -59,6 +59,29 @@ gen-client: ## Generate the typed TS API client from the OpenAPI spec
 	cd packages/api-client && bun run generate
 
 ## ──────────────────────────────────────────────────────────────────────────
+## Local dependencies (Docker Compose)
+## ──────────────────────────────────────────────────────────────────────────
+.PHONY: deps-up
+deps-up: ## Start core local services (postgres)
+	docker compose up -d
+
+.PHONY: deps-up-all
+deps-up-all: ## Start all local services (postgres + redis + mailpit)
+	docker compose --profile all up -d
+
+.PHONY: deps-down
+deps-down: ## Stop local services (keep data volumes)
+	docker compose down
+
+.PHONY: deps-reset
+deps-reset: ## Stop local services and DELETE their data volumes
+	docker compose down -v
+
+.PHONY: deps-logs
+deps-logs: ## Tail local service logs
+	docker compose logs -f
+
+## ──────────────────────────────────────────────────────────────────────────
 ## Database (dbmate)
 ## ──────────────────────────────────────────────────────────────────────────
 DBMATE := dbmate --migrations-dir $(API_DIR)/db/migrations --schema-file $(API_DIR)/db/schema.sql

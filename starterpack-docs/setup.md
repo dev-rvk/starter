@@ -68,13 +68,25 @@ is bypassed in dev. **For the full experience**, set:
 Every other key (Stripe, Sentry, Resend, Google Analytics, PostHog) is optional —
 see [docs.md](./docs.md#feature-toggles) for the full toggle list.
 
-## 4. Start PostgreSQL (optional but recommended)
+## 4. Start local dependencies (Docker Compose)
+
+Backing services are defined in `docker-compose.yml` and managed through the
+Makefile:
 
 ```bash
-docker run -d --name starterpack-pg \
-  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=starterpack \
-  -p 5433:5432 postgres:16-alpine
+make deps-up        # core services (postgres on :5433)
+make deps-up-all    # also redis (:6379) + mailpit (:8025) — opt-in profiles
+make deps-down      # stop (data kept)
+make deps-reset     # stop and delete data volumes
+make deps-logs      # tail logs
 ```
+
+**Local ↔ hosted flow:** each dependency is a container *or* a managed provider —
+whichever the env var points at. For local, `make deps-up` and set
+`DATABASE_URL` to `postgres://postgres:postgres@localhost:5433/starterpack?sslmode=disable`.
+To go hosted, set `DATABASE_URL` to a [Neon](https://neon.tech)/Supabase string
+and skip the container. Same pattern for Redis (Upstash) and email (Resend); see
+the table in [docs.md](./docs.md#local-dependencies--docker).
 
 ## 5. Run migrations
 
