@@ -9,17 +9,11 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { apiUrl } from "../features";
+import { useApiClient } from "../lib/api";
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
 });
-
-type ApiUser = {
-  id: string;
-  username: string;
-  email: string;
-  createdAt: string;
-};
 
 function DashboardPage() {
   // When Clerk is configured, gate the dashboard behind authentication.
@@ -41,14 +35,15 @@ function GuardedDashboard() {
 }
 
 function Dashboard() {
+  const api = useApiClient();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["users"],
-    queryFn: async (): Promise<ApiUser[]> => {
-      const res = await fetch(`${apiUrl}/api/v1/users`);
-      if (!res.ok) {
-        throw new Error(`API error ${res.status}`);
+    queryFn: async () => {
+      const { data: users, error: apiError } = await api.GET("/users");
+      if (apiError) {
+        throw new Error("API error");
       }
-      return res.json();
+      return users;
     },
   });
 

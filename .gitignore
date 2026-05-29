@@ -288,3 +288,6 @@ packages/database/generated
 apps/api/bin/
 apps/api/tmp/
 *.test
+
+# Starterpack: generated OpenAPI intermediate
+packages/api-client/openapi.json

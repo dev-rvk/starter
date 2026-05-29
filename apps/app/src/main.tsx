@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { ApiProvider } from "./lib/api";
 import { routeTree } from "./routeTree.gen";
 import "./styles.css";
 
@@ -26,12 +27,14 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <RouterProvider router={router} />
-          <Toaster />
-        </ThemeProvider>
-      </QueryClientProvider>
+      <ApiProvider>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <RouterProvider router={router} />
+            <Toaster />
+          </ThemeProvider>
+        </QueryClientProvider>
+      </ApiProvider>
     </AuthProvider>
   </StrictMode>
 );
