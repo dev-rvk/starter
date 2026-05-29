@@ -1,0 +1,21 @@
+{
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false,
+    "types": ["vite/client", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@repo/design-system/*": ["../../packages/design-system/src/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

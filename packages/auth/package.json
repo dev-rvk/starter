@@ -1,0 +1,27 @@
+{
+  "name": "@repo/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clerk/clerk-react": "^5.51.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@types/react": "^19.2.14",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "typescript": "^5.9.3"
+  }
+}

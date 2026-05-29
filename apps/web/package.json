@@ -1,0 +1,32 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3001 --strictPort",
+    "build": "vite build && tsc --noEmit",
+    "preview": "vite preview --port 3001 --strictPort",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@repo/design-system": "workspace:*",
+    "@tanstack/react-router": "^1.95.0",
+    "lucide-react": "^0.577.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@tailwindcss/vite": "^4.2.1",
+    "@tanstack/router-plugin": "^1.95.0",
+    "@types/node": "^25.3.5",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0"
+  }
+}
