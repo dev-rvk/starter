@@ -2,61 +2,34 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Next.js: debug server-side",
-      "type": "node-terminal",
+      "name": "API: Debug Go Backend",
+      "type": "go",
       "request": "launch",
-      "command": "bun dev"
+      "mode": "auto",
+      "program": "${workspaceFolder}/apps/api/cmd/api/main.go",
+      "cwd": "${workspaceFolder}/apps/api",
+      "envFile": "${workspaceFolder}/apps/api/.env.local"
     },
     {
-      "name": "Next.js: debug client-side (app)",
+      "name": "App: Debug client-side (app)",
       "type": "chrome",
       "request": "launch",
-      "url": "http://localhost:3000"
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/apps/app"
     },
     {
-      "name": "Next.js: debug client-side (web)",
+      "name": "Web: Debug client-side (web)",
       "type": "chrome",
       "request": "launch",
-      "url": "http://localhost:3001"
+      "url": "http://localhost:3001",
+      "webRoot": "${workspaceFolder}/apps/web"
     },
     {
-      "name": "Next.js: debug client-side (api)",
+      "name": "Email: Debug client-side (email)",
       "type": "chrome",
       "request": "launch",
-      "url": "http://localhost:3002"
-    },
-    {
-      "name": "Next.js: debug client-side (email)",
-      "type": "chrome",
-      "request": "launch",
-      "url": "http://localhost:3003"
-    },
-    {
-      "name": "Next.js: debug client-side (app)",
-      "type": "chrome",
-      "request": "launch",
-      "url": "http://localhost:3004"
-    },
-    {
-      "name": "Next.js: debug client-side (studio)",
-      "type": "chrome",
-      "request": "launch",
-      "url": "http://localhost:3005"
-    },
-    {
-      "name": "Next.js: debug full stack",
-      "type": "node",
-      "request": "launch",
-      "program": "${workspaceFolder}/node_modules/.bin/next",
-      "runtimeArgs": ["--inspect"],
-      "skipFiles": ["<node_internals>/**"],
-      "serverReadyAction": {
-        "action": "debugWithEdge",
-        "killOnServerStop": true,
-        "pattern": "- Local:.+(https?://.+)",
-        "uriFormat": "%s",
-        "webRoot": "${workspaceFolder}"
-      }
+      "url": "http://localhost:3003",
+      "webRoot": "${workspaceFolder}/apps/email"
     }
   ]
 }
