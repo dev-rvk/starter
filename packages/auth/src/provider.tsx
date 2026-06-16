@@ -16,11 +16,11 @@ export const isAuthEnabled = (): boolean => publishableKey.length > 0;
 /** useIsAuthEnabled is the hook form of {@link isAuthEnabled}. */
 export const useIsAuthEnabled = (): boolean => isAuthEnabled();
 
-type AuthProviderProps = {
-  children: ReactNode;
+interface AuthProviderProps {
   /** Where Clerk should send users after sign-out, etc. */
   afterSignOutUrl?: string;
-};
+  children: ReactNode;
+}
 
 /**
  * AuthProvider mounts Clerk only when a publishable key is present. Without a
