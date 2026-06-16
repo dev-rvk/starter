@@ -29,7 +29,7 @@ make dev        # run everything concurrently (bootstrapping)
 
 **Prerequisites:** [Bun](https://bun.sh) ≥ 1.3, [Go](https://go.dev/dl/) ≥ 1.24,
 GNU Make, and (optional) Docker for local PostgreSQL. `make setup` installs the
-Go CLIs (sqlc, dbmate, swag) for you. Run `make help` to list every target.
+Go CLIs (sqlc, swag) for you. Run `make help` to list every target.
 
 Only **Clerk** (auth) and **PostgreSQL** are needed for the full experience —
 every other integration is a feature toggle that stays inert until its key is
@@ -98,7 +98,7 @@ for the full matrix and per-service detail.
 ## Stack
 
 - **Frontend:** Vite, TanStack Router, TanStack Query, Tailwind v4, shadcn/ui
-- **Backend:** Go, hexagonal (ports & adapters), Gin, zerolog, pgx + sqlc, dbmate
+- **Backend:** Go, hexagonal (ports & adapters), Gin, zerolog, pgx + sqlc, Atlas
 - **Auth:** Clerk (graceful when unconfigured)
 - **Contract:** Go OpenAPI (swag) → typed TS client (openapi-typescript + openapi-fetch)
 - **Tooling:** Bun, Turborepo, a single `Makefile` entrypoint (`make help`)
@@ -117,9 +117,14 @@ make dev          # run Go API + all JS apps concurrently (bootstrapping)
 make client       # run JS apps via turbo (TUI mode)
 make server       # run the Go API backend (clean logs)
 make build        # build all JS apps + the Go binary
-make migrate      # apply dbmate migrations (needs DATABASE_URL)
+make migrate      # apply Atlas migrations (needs DATABASE_URL)
+make db-diff name=... # generate an Atlas migration
+make db-apply     # apply Atlas migrations
+make db-status    # show migration status
+make db-reset     # teardown DB volume and run all migrations
 make generate     # regenerate sqlc + OpenAPI + typed client
-make lint         # ultracite (JS) + go vet
+make lint         # check JS (ultracite) and vet Go
+make lint-fix     # auto-fix JS/TS formatting and linting
 make test         # bun test + go test
 make help         # list every target
 ```

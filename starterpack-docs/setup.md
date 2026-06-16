@@ -39,7 +39,7 @@ make setup
 This runs, in order:
 - `bun install` — all JS workspace dependencies
 - `go mod download` — Go dependencies (in `apps/api`)
-- `make tools` — installs the Go CLIs **sqlc**, **dbmate**, **swag** (into your
+- `make tools` — installs the Go CLIs **sqlc**, **swag** (into your
   `GOBIN`; ensure it is on `PATH`, e.g. `export PATH="$(go env GOPATH)/bin:$PATH"`)
 - `make generate` — runs sqlc (DB types), swag (OpenAPI spec), and the typed TS
   API client generator
@@ -91,12 +91,15 @@ the table in [docs.md](./docs.md#local-dependencies--docker).
 ## 5. Run migrations
 
 ```bash
-make migrate
+make db-apply
 ```
 
-This applies `apps/api/db/migrations/*.sql` with dbmate and refreshes
-`apps/api/db/schema.sql` (which sqlc reads). Re-run `make sqlc` if you changed the
-schema.
+This applies the pre-generated database migrations via Atlas. 
+If you modify [schema.sql](file:///Users/dev-rvk/Downloads/starterpack/starterpack/apps/api/db/schema.sql) in development, you can generate the corresponding SQL migrations by running:
+```bash
+make db-diff name=migration_name
+```
+Then apply them using `make db-apply` and run `make sqlc` to sync your Go client.
 
 ## 6. Start everything
 
@@ -133,8 +136,11 @@ Clerk configured, you'll be redirected to `/sign-in`.
 ```bash
 make help          # list all targets
 make build         # build all JS apps + the Go binary
-make lint          # ultracite (JS) + go vet
+make lint          # check JS (ultracite) and vet Go
+make lint-fix      # auto-fix JS/TS formatting and linting
 make test          # JS + Go tests
-make migrate-new name=create_widgets
+make db-diff name=create_widgets # generate an Atlas migration from schema
+make db-apply      # apply pending migrations
+make db-status     # check migration status
 make generate      # re-run sqlc + openapi + client codegen
 ```

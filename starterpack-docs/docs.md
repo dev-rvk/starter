@@ -17,7 +17,7 @@ backend), and how to reproduce each step manually. It mirrors the git history:
 
 ```
 apps/
-  api/         Go backend — hexagonal (Gin, zerolog, pgx+sqlc, dbmate, Clerk, OpenAPI)
+  api/         Go backend — hexagonal (Gin, zerolog, pgx+sqlc, Atlas, Clerk, OpenAPI)
   app/         Vite + TanStack Router dashboard (:3000)
   web/         Vite + TanStack Router marketing site (:3001)
   email/       React Email preview (:3003) — kept from next-forge
@@ -37,7 +37,7 @@ Makefile           Single entrypoint (wraps bun/turbo + Go toolchain)
 |--------|--------|
 | Package manager / runtime | Bun |
 | Backend | Go, hexagonal (ports & adapters), **Gin**, **zerolog** |
-| DB access | **sqlc + pgx**; migrations via **dbmate** |
+| DB access | **sqlc + pgx**; migrations via **Atlas** |
 | Go validation | `go-playground/validator` + domain value-object constructors |
 | Frontend | **Vite + TanStack Router**, `app` + `web` split |
 | API contract | Go **OpenAPI** (swag) → **openapi-typescript + openapi-fetch** |
@@ -121,7 +121,7 @@ internal/adapters/http/          Gin handlers, DTOs (validator tags), middleware
 internal/adapters/persistence/   postgres (pgx+sqlc) and memory implementations
 internal/config/                 env-driven feature toggles
 internal/platform/logger/        zerolog
-db/{migrations,queries,schema.sql}  dbmate + sqlc inputs
+db/{migrations,queries,schema.sql}  Atlas + sqlc inputs
 docs/                            generated OpenAPI spec (swag)
 ```
 
@@ -230,5 +230,5 @@ URL from env in the relevant config — mirroring the Postgres pattern.
 - `make typecheck` (or `bun run typecheck`) needs the generated route trees; run
   `make dev` or `make build` once first (vite generates them).
 - The app's main JS chunk is large; add route-level `manualChunks` later.
-- Live DB path (dbmate → pgx) verified structurally via sqlc codegen; run
-  `make migrate && make dev` against a real PostgreSQL to exercise it end-to-end.
+- Live DB path (Atlas → pgx) verified structurally via sqlc codegen; run
+  `make db-apply && make dev` against a real PostgreSQL to exercise it end-to-end.
