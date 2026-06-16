@@ -11,8 +11,13 @@ integrations (Clerk, Stripe, analytics, email, error tracking). A re-platform of
 make setup      # install deps + tools, generate code
 make deps-up    # start local PostgreSQL (Docker)
 make migrate    # apply database migrations
-make dev        # run everything
+make dev        # run everything concurrently (bootstrapping)
 ```
+
+> [!TIP]
+> While `make dev` boots the entire stack in one terminal, it is highly recommended to run them separately in two windows/panes for clean log visibility:
+> - `make client` runs all JS applications under the Turborepo TUI.
+> - `make server` runs the Go backend API with clean, un-obscured stdout logging.
 
 | URL | App |
 |-----|-----|
@@ -108,7 +113,9 @@ packages/   api-client · auth · design-system · email · typescript-config
 ## Common commands
 
 ```bash
-make dev          # Go API + all JS apps concurrently
+make dev          # run Go API + all JS apps concurrently (bootstrapping)
+make client       # run JS apps via turbo (TUI mode)
+make server       # run the Go API backend (clean logs)
 make build        # build all JS apps + the Go binary
 make migrate      # apply dbmate migrations (needs DATABASE_URL)
 make generate     # regenerate sqlc + OpenAPI + typed client

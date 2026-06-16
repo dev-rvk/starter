@@ -107,7 +107,7 @@ The schema is owned by SQL migrations (dbmate), not an ORM. dbmate dumps
 ## Running development
 
 ```bash
-make dev
+make dev 
 ```
 
 | URL | App |
@@ -118,7 +118,7 @@ make dev
 | http://localhost:3003 | `email` — preview |
 | http://localhost:6006 | `storybook` |
 
-Run pieces individually with `make dev-api` / `make dev-js`.
+Run pieces individually with `make client` / `make server` (or their aliases `make dev-js` / `make dev-api`). Running them separately is recommended for clean log visibility from the Go API.
 
 ## Verify
 

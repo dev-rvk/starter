@@ -124,7 +124,9 @@ the Makefile runs it alongside `turbo dev`.
 | `setup` | `install` + `go-deps` + `tools` + `generate` |
 | `tools` | `go install` sqlc, dbmate, swag |
 | `generate` | `sqlc` + `openapi` + `gen-client` |
-| `dev` | run Go API + all JS apps concurrently (`make -j2 dev-js dev-api`) |
+| `dev` | run Go API + JS apps concurrently (`make -j2 client server`) (bootstrapping) |
+| `client` | run JS apps via turbo (TUI mode) |
+| `server` | run Go API backend (clean stdout logs) |
 | `deps-up` / `deps-up-all` / `deps-down` / `deps-reset` / `deps-logs` | Docker Compose local services |
 | `migrate` / `migrate-new` / `migrate-down` | dbmate |
 | `build` | `build-js` (turbo) + `build-api` (go build) |

@@ -18,7 +18,9 @@ boots. The whole monorepo is driven through a single **Makefile**.
 make setup     # install JS + Go deps, install Go CLIs, run code generators
 make deps-up   # start local backing services (postgres) via Docker Compose
 make migrate   # apply dbmate migrations (needs DATABASE_URL)
-make dev       # run the Go API + all JS apps concurrently
+make dev       # run the Go API + all JS apps concurrently (bootstrapping)
+make client    # run the JS apps via turbo (interactive TUI)
+make server    # run the Go API backend (clean stdout logs)
 ```
 
 Only **Clerk** (auth) and **PostgreSQL** are needed for the full experience.
@@ -99,9 +101,11 @@ TanStack Query. Regenerate with `make generate`.
 ### Development
 
 ```bash
-make dev        # everything (Go API + app/web/storybook/email)
-make dev-api    # just the Go API (port 3002)
-make dev-js     # just the JS apps (turbo)
+make dev        # everything (Go API + JS apps) concurrently (bootstrapping)
+make client     # JS apps via turbo (TUI mode)
+make server     # Go API backend (clean stdout logs)
+make dev-js     # alias for client
+make dev-api    # alias for server
 ```
 
 ### Local dependencies (Docker Compose)

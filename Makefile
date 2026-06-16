@@ -102,16 +102,22 @@ migrate-new: ## Create a migration: make migrate-new name=create_widgets
 ## Development
 ## ──────────────────────────────────────────────────────────────────────────
 .PHONY: dev
-dev: ## Run everything (Go API + app/web/storybook/email) concurrently
-	@$(MAKE) -j2 --no-print-directory dev-js dev-api
+dev: ## Run everything (Go API + JS apps) concurrently (bootstrapping)
+	@$(MAKE) -j2 --no-print-directory client server
 
-.PHONY: dev-js
-dev-js: ## Run all JS apps via turbo (app:3000 web:3001 storybook:6006 email:3003)
+.PHONY: client
+client: ## Run all JS apps via turbo (app:3000 web:3001 storybook:6006 email:3003) in TUI
 	bun run dev
 
-.PHONY: dev-api
-dev-api: ## Run the Go API with live env (port 3002)
+.PHONY: server
+server: ## Run the Go API with live env (port 3002) for clean log visibility
 	cd $(API_DIR) && go run ./cmd/api
+
+.PHONY: dev-js
+dev-js: client ## Alias for client
+
+.PHONY: dev-api
+dev-api: server ## Alias for server
 
 ## ──────────────────────────────────────────────────────────────────────────
 ## Build / quality
