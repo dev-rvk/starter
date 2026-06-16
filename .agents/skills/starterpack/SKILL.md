@@ -1,6 +1,6 @@
 ---
 name: starterpack
-description: Expert assistance for the starterpack monorepo — a deployable Turborepo with a Vite + TanStack Router frontend, a Go hexagonal (ports & adapters) backend, a shadcn/ui design system, and feature-toggled SaaS integrations. Use this skill whenever the user is working in this repo or asks about its structure, apps, packages, the Go backend (Gin, zerolog, sqlc, pgx, dbmate, Clerk), the Vite apps, the design system, the typed API client, the Makefile workflow, feature toggles, environment variables, or how to add features and deploy — even if they don't name "starterpack" explicitly.
+description: Expert assistance for the starterpack monorepo — a deployable Turborepo with a Vite + TanStack Router frontend, a Go hexagonal (ports & adapters) backend, a shadcn/ui design system, and feature-toggled SaaS integrations. Use this skill whenever the user is working in this repo or asks about its structure, apps, packages, the Go backend (Gin, zerolog, sqlc, pgx, Atlas, Clerk), the Vite apps, the design system, the typed API client, the Makefile workflow, feature toggles, environment variables, or how to add features and deploy — even if they don't name "starterpack" explicitly.
 ---
 
 # starterpack
@@ -17,7 +17,10 @@ boots. The whole monorepo is driven through a single **Makefile**.
 ```bash
 make setup     # install JS + Go deps, install Go CLIs, run code generators
 make deps-up   # start local backing services (postgres) via Docker Compose
-make migrate   # apply dbmate migrations (needs DATABASE_URL)
+make migrate   # apply Atlas migrations (needs DATABASE_URL)
+make migrate-new name=create_widgets # generate an Atlas migration
+make db-status # show migration status
+make db-reset  # reset database and re-apply migrations
 make dev       # run the Go API + all JS apps concurrently (bootstrapping)
 make client    # run the JS apps via turbo (interactive TUI)
 make server    # run the Go API backend (clean stdout logs)
@@ -119,18 +122,19 @@ make deps-up       # core (postgres); make deps-up-all adds redis + mailpit
 make deps-down     # stop (keep data);  make deps-reset wipes volumes
 ```
 
-### Database migrations (dbmate + sqlc)
+### Database migrations (Atlas + sqlc)
 
-The schema is owned by SQL migrations, not an ORM:
+The schema is owned by SQL migrations, which Atlas generates automatically by diffing `db/schema.sql` (your desired state) against your migration history:
 
 ```bash
-make migrate-new name=create_widgets   # scaffold a migration
-make migrate                           # apply (dbmate up) + refresh db/schema.sql
-make sqlc                              # regenerate type-safe Go from SQL
+make db-diff name=create_widgets   # generate a new migration file
+make db-apply                      # apply pending migrations to database
+make db-status                     # check migrations status
+make db-reset                      # teardown and apply from scratch
+make sqlc                          # regenerate type-safe Go from SQL
 ```
 
-dbmate keeps `apps/api/db/schema.sql` in sync; **sqlc reads that file** to
-generate `internal/adapters/persistence/postgres/sqlc`.
+Atlas manages migration files in `apps/api/db/migrations/` and tracks them with an integrity file (`atlas.sum`). **sqlc reads the schema.sql file** to generate the Go persistence client.
 
 ### Code generation
 
@@ -161,7 +165,7 @@ make build   # all JS apps (turbo) + the Go binary
 
 Each frontend app builds to static assets (`apps/<app>/dist`) deployable to any
 static host/CDN. The Go API compiles to a single binary (`make build-api`) for a
-container or VM. Run migrations as a discrete CI/CD step (`dbmate up` keyed off
+container or VM. Run migrations as a discrete CI/CD step (`atlas migrate apply` keyed off
 `DATABASE_URL`). Provisioning manifests are intentionally left to the team.
 
 ## Reference files

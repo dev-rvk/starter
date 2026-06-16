@@ -52,7 +52,7 @@ in `apps/<app>/src/features.ts`. To make a NEW integration toggleable:
 | Concern | Default | To change |
 |---------|---------|-----------|
 | DB driver/queries | pgx + sqlc | Edit `sqlc.yaml` + `db/queries`; or replace the persistence adapter (GORM/ent) keeping the domain port |
-| Migrations | dbmate | Swap the `migrate*` Makefile targets for goose/golang-migrate; keep `schema.sql` as sqlc's input |
+| Migrations | Atlas | Swap the `db-*` / `migrate` Makefile targets for goose/dbmate/golang-migrate; keep `schema.sql` as sqlc's input |
 | HTTP framework | Gin | Reimplement `internal/adapters/http` against chi/echo; domain + application are untouched |
 | Auth | Clerk | Replace `@repo/auth` + the Go `auth` middleware; keep the `ApiProvider` token interface |
 | Payments | Stripe (planned) | Add a `payments` package + a Go adapter + webhook handler under `/api/v1` |
@@ -76,6 +76,6 @@ it ships React components imported by subpath, mirror the design-system pattern
   Set `VITE_*` vars at build time.
 - **API**: `make build-api` → ship `apps/api/bin/api` in a container/VM. Provide
   runtime env (`DATABASE_URL`, `CLERK_SECRET_KEY`, …).
-- **Migrations**: run `dbmate up` as a discrete release step (not on app boot).
+- **Migrations**: run `atlas migrate apply` (or `make db-apply`) as a discrete release step (not on app boot).
 - **Observability** (Prometheus/Grafana), SSR/SEO for marketing, and hosting
   manifests are intentionally left open for the team to choose.

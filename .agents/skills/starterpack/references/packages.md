@@ -4,7 +4,7 @@ Apps are in `/apps/`; shared packages in `/packages/` (imported as `@repo/<name>
 
 ## Backend — `apps/api` (Go)
 
-**Stack**: Go, Gin, zerolog, pgx + sqlc, dbmate, Clerk SDK, go-playground/validator,
+**Stack**: Go, Gin, zerolog, pgx + sqlc, Atlas, Clerk SDK, go-playground/validator,
 swag (OpenAPI). **Architecture**: hexagonal (ports & adapters).
 
 **Layout** (see `references/architecture.md` for the full tree):
@@ -23,9 +23,7 @@ swag (OpenAPI). **Architecture**: hexagonal (ports & adapters).
 (POST/GET/GET:id) as the worked example. Routes under `/api/v1` are protected by
 Clerk middleware when `CLERK_SECRET_KEY` is set.
 
-**DB workflow**: edit a dbmate migration in `db/migrations/`, `make migrate`
-(applies + dumps `db/schema.sql`), `make sqlc` (regenerates typed Go from
-`db/queries/` against `schema.sql`).
+**DB workflow**: edit `db/schema.sql` directly (desired state), run `make db-diff name=...` (generates migration file), run `make db-apply` (applies to DB), and run `make sqlc` (regenerates typed Go from `db/queries/` against `db/schema.sql`).
 
 ## Frontend apps
 

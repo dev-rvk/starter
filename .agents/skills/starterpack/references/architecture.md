@@ -75,9 +75,9 @@ apps/api/
 │   │       └── memory/                    # in-memory repo (no-DB fallback)
 │   └── platform/logger/                   # zerolog setup
 ├── db/
-│   ├── migrations/                        # dbmate .sql (up/down)
+│   ├── migrations/                        # Atlas versioned migrations
 │   ├── queries/                           # sqlc input queries
-│   └── schema.sql                         # dbmate dump → sqlc input
+│   └── schema.sql                         # desired schema state -> sqlc input
 ├── docs/                                  # GENERATED OpenAPI spec (swag)
 ├── sqlc.yaml
 └── go.mod
@@ -122,13 +122,13 @@ the Makefile runs it alongside `turbo dev`.
 | Target | What it does |
 |--------|--------------|
 | `setup` | `install` + `go-deps` + `tools` + `generate` |
-| `tools` | `go install` sqlc, dbmate, swag |
+| `tools` | `go install` sqlc, swag |
 | `generate` | `sqlc` + `openapi` + `gen-client` |
 | `dev` | run Go API + JS apps concurrently (`make -j2 client server`) (bootstrapping) |
 | `client` | run JS apps via turbo (TUI mode) |
 | `server` | run Go API backend (clean stdout logs) |
 | `deps-up` / `deps-up-all` / `deps-down` / `deps-reset` / `deps-logs` | Docker Compose local services |
-| `migrate` / `migrate-new` / `migrate-down` | dbmate |
+| `db-diff` / `db-apply` / `db-status` / `db-reset` / `migrate` | Atlas |
 | `build` | `build-js` (turbo) + `build-api` (go build) |
 | `lint` / `test` / `clean` | JS + Go together |
 
@@ -144,6 +144,6 @@ the Makefile runs it alongside `turbo dev`.
 
 - `apps/api/internal/adapters/persistence/postgres/sqlc/**` (sqlc)
 - `apps/api/docs/**` (swag)
-- `apps/api/db/schema.sql` (dbmate dump)
+- `apps/api/db/schema.sql` (desired schema state)
 - `packages/api-client/src/schema.d.ts` (openapi-typescript)
 - `apps/<app>/src/routeTree.gen.ts` (TanStack Router plugin, gitignored)

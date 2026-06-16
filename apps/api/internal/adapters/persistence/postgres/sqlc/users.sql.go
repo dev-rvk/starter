@@ -13,7 +13,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, username, email, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, username, email, created_at, updated_at
+RETURNING created_at, updated_at, id, username, email
 `
 
 type CreateUserParams struct {
@@ -34,17 +34,17 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	)
 	var i User
 	err := row.Scan(
+		&i.CreatedAt,
+		&i.UpdatedAt,
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, created_at, updated_at FROM users
+SELECT created_at, updated_at, id, username, email FROM users
 WHERE id = $1
 `
 
@@ -52,17 +52,17 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
+		&i.CreatedAt,
+		&i.UpdatedAt,
 		&i.ID,
 		&i.Username,
 		&i.Email,
-		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, username, email, created_at, updated_at FROM users
+SELECT created_at, updated_at, id, username, email FROM users
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -82,11 +82,11 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]User, e
 	for rows.Next() {
 		var i User
 		if err := rows.Scan(
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.ID,
 			&i.Username,
 			&i.Email,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

@@ -22,7 +22,7 @@ make setup
 ```
 
 Runs, in order: `bun install` → `go mod download` → `make tools` (installs sqlc,
-dbmate, swag into `GOBIN` — ensure `$(go env GOPATH)/bin` is on `PATH`) →
+swag into `GOBIN` — ensure `$(go env GOPATH)/bin` is on `PATH`) →
 `make generate` (sqlc, OpenAPI, typed client).
 
 Then copy env templates:
@@ -97,12 +97,12 @@ Set `DATABASE_URL` in `apps/api/.env.local`, e.g.
 `postgres://postgres:postgres@localhost:5433/starterpack?sslmode=disable`, then:
 
 ```bash
-make migrate    # dbmate up — applies apps/api/db/migrations and refreshes schema.sql
-make sqlc       # regenerate type-safe Go if the schema changed
+make db-diff name=create_widgets # generate migration from db/schema.sql changes
+make db-apply                    # apply pending migrations to database (Atlas)
+make sqlc                        # regenerate type-safe Go if the schema changed
 ```
 
-The schema is owned by SQL migrations (dbmate), not an ORM. dbmate dumps
-`apps/api/db/schema.sql`, which **sqlc reads** to generate the typed query code.
+The schema is owned by SQL migrations, which Atlas generates automatically by diffing `apps/api/db/schema.sql` (your desired state) against your migration history. **sqlc reads schema.sql** to generate the typed query code.
 
 ## Running development
 
@@ -147,5 +147,5 @@ Field rules are enforced in two layers and kept in sync:
   trees; run `make dev` or `make build` once first (Vite generates them).
 - swag emits **Swagger 2.0**; `@repo/api-client` converts it to OpenAPI 3 via
   `swagger2openapi` before `openapi-typescript`. Just run `make gen-client`.
-- The Go API runs migrations as a separate step (dbmate CLI), not on boot — the
+- The Go API runs migrations as a separate step (via Atlas in CI/CD), not on boot — the
   robust production pattern.

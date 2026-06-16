@@ -35,9 +35,8 @@ go-deps: ## Download Go module dependencies
 	cd $(API_DIR) && go mod download
 
 .PHONY: tools
-tools: ## Install Go CLIs (sqlc, dbmate, swag)
+tools: ## Install Go CLIs (sqlc, swag)
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-	go install github.com/amacneil/dbmate/v2@latest
 	go install github.com/swaggo/swag/cmd/swag@latest
 
 ## ──────────────────────────────────────────────────────────────────────────
@@ -82,21 +81,33 @@ deps-logs: ## Tail local service logs
 	docker compose logs -f
 
 ## ──────────────────────────────────────────────────────────────────────────
-## Database (dbmate)
+## Database (Atlas)
 ## ──────────────────────────────────────────────────────────────────────────
-DBMATE := dbmate --migrations-dir $(API_DIR)/db/migrations --schema-file $(API_DIR)/db/schema.sql
+ATLAS := npx @ariga/atlas@0.37.0
 
-.PHONY: migrate
-migrate: ## Apply pending migrations (dbmate up)
-	$(DBMATE) up
+.PHONY: db-diff db-apply db-lint db-status db-reset migrate migrate-new
+db-diff: ## Generate migration: make db-diff name=add_users
+	cd $(API_DIR) && $(ATLAS) migrate diff $(name) --env local
 
-.PHONY: migrate-down
-migrate-down: ## Roll back the last migration
-	$(DBMATE) down
+db-apply: ## Apply pending migrations
+	cd $(API_DIR) && $(ATLAS) migrate apply --env local
 
-.PHONY: migrate-new
-migrate-new: ## Create a migration: make migrate-new name=create_widgets
-	$(DBMATE) new $(name)
+db-lint: ## Lint pending migrations
+	cd $(API_DIR) && $(ATLAS) migrate lint --env local --latest=1
+
+db-status: ## Show migration status
+	cd $(API_DIR) && $(ATLAS) migrate status --env local
+
+db-hash: ## Re-calculate migration directory hash (fixes checksum mismatch)
+	cd $(API_DIR) && $(ATLAS) migrate hash --env local
+
+db-reset: ## DESTRUCTIVE — drop volume and start over
+	docker compose down -v
+	docker compose up -d --wait
+	cd $(API_DIR) && $(ATLAS) migrate apply --env local
+
+migrate: db-apply ## Alias for db-apply
+migrate-new: db-diff ## Alias for db-diff
 
 ## ──────────────────────────────────────────────────────────────────────────
 ## Development
@@ -133,10 +144,13 @@ build-js: ## Build all JS apps/packages (turbo)
 build-api: ## Compile the Go API binary
 	cd $(API_DIR) && go build -o bin/api ./cmd/api
 
-.PHONY: lint
+.PHONY: lint lint-fix
 lint: ## Lint JS (ultracite) and vet Go
 	bun run check
 	cd $(API_DIR) && go vet ./...
+
+lint-fix: ## Auto-fix JS/TS formatting and linting issues (ultracite)
+	bun run fix
 
 .PHONY: test
 test: ## Run JS and Go tests

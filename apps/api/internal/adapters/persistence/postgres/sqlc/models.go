@@ -6,16 +6,22 @@ package sqlc
 
 import (
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type SchemaMigration struct {
-	Version string
+type Todo struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ID        string
+	Title     string
+	Completed pgtype.Bool
 }
 
 type User struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
 	ID        string
 	Username  string
 	Email     string
-	CreatedAt time.Time
-	UpdatedAt time.Time
 }
