@@ -1,12 +1,17 @@
 package user
 
-import "errors"
+import (
+	"fmt"
 
-// Domain-level errors. Adapters translate these into transport-specific
-// representations (e.g. HTTP status codes) — the domain stays transport-agnostic.
+	"github.com/starterpack/api/internal/domain"
+)
+
+// Domain-level errors. These wrap the shared sentinels from the domain package
+// so the HTTP adapter can map them by category (not-found, conflict, validation)
+// without importing every individual domain.
 var (
-	ErrInvalidUsername = errors.New("username must be 2-6 characters and contain only letters, numbers or underscores")
-	ErrInvalidEmail    = errors.New("invalid email address")
-	ErrNotFound        = errors.New("user not found")
-	ErrAlreadyExists   = errors.New("user already exists")
+	ErrInvalidUsername = fmt.Errorf("username must be 2-6 characters, letters/digits/underscores: %w", domain.ErrValidation)
+	ErrInvalidEmail    = fmt.Errorf("invalid email address: %w", domain.ErrValidation)
+	ErrNotFound        = fmt.Errorf("user %w", domain.ErrNotFound)
+	ErrAlreadyExists   = fmt.Errorf("user %w", domain.ErrAlreadyExists)
 )

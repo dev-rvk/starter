@@ -131,13 +131,17 @@ curl http://localhost:3002/api/v1/users
 ```
 
 The dashboard at http://localhost:3000 lists those users. Invalid input (e.g. a
-username outside 2–6 chars) returns `400` from the validator.
+username outside 2–6 chars) returns `422` from the validator.
 
 ## Validation model
 
-Field rules are enforced in two layers and kept in sync:
-- **Backend (authoritative)**: Gin binding tags (`binding:"min=2,max=6"`) at the
-  HTTP edge, plus domain value-object constructors (`NewUsername`/`NewEmail`).
+Validation is a **single source of truth** in the backend:
+- **Backend**: domain entities carry `validate:` struct tags (e.g.
+  `validate:"required,min=2,max=6"`). Validation is performed **only** in the
+  application/service layer using the platform validator
+  (`internal/platform/validator`). HTTP DTOs are pure data shuttles with only
+  `json:` tags — no `binding:` validation tags. Validation errors are returned
+  as `domain.ErrValidation` (→ 422).
 - **Frontend (UX)**: zod schemas in the design-system auth forms mirror the same
   rules for instant feedback.
 

@@ -25,8 +25,8 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 func (r *UserRepository) Create(ctx context.Context, u *userdomain.User) error {
 	_, err := r.q.CreateUser(ctx, sqlc.CreateUserParams{
 		ID:        u.ID,
-		Username:  u.Username.String(),
-		Email:     u.Email.String(),
+		Username:  u.Username,
+		Email:     u.Email,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 	})
@@ -66,21 +66,11 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int32) ([]*user
 	return out, nil
 }
 
-// toDomain rehydrates a domain User from a persisted row, re-validating the
-// value objects (defensive: the DB is treated as an untrusted boundary).
 func toDomain(row sqlc.User) (*userdomain.User, error) {
-	username, err := userdomain.NewUsername(row.Username)
-	if err != nil {
-		return nil, err
-	}
-	email, err := userdomain.NewEmail(row.Email)
-	if err != nil {
-		return nil, err
-	}
 	return &userdomain.User{
 		ID:        row.ID,
-		Username:  username,
-		Email:     email,
+		Username:  row.Username,
+		Email:     row.Email,
 		CreatedAt: row.CreatedAt,
 		UpdatedAt: row.UpdatedAt,
 	}, nil

@@ -8,15 +8,23 @@ Apps are in `/apps/`; shared packages in `/packages/` (imported as `@repo/<name>
 swag (OpenAPI). **Architecture**: hexagonal (ports & adapters).
 
 **Layout** (see `references/architecture.md` for the full tree):
-- `internal/domain/<x>/` — entities, value objects (validate in constructors),
-  and the `Repository` **port** (interface).
-- `internal/application/<x>/` — use cases; depend only on ports.
-- `internal/adapters/http/` — Gin handlers (thin), DTOs, response mapping,
-  middleware (`logger` zerolog, `cors`, `auth` Clerk JWT). Handlers carry swag
-  annotations that generate the OpenAPI spec.
+- `internal/domain/errors.go` — shared error sentinels (`ErrNotFound`,
+  `ErrAlreadyExists`, `ErrValidation`). Individual domains wrap these for
+  `errors.Is()` compatibility.
+- `internal/domain/<x>/` — entities with `validate:` struct tags, and the
+  `Repository` **port** (interface).
+- `internal/application/<x>/` — use cases; depend only on ports. **Single source of
+  truth for validation** — uses the platform validator to check entity struct tags.
+- `internal/adapters/http/` — flat package with `{resource}_handler.go` (thin Gin
+  handlers + swag annotations) and `{resource}_dto.go` (pure data shuttles with
+  `json:` tags only — no `binding:` tags). `response.go` maps shared domain
+  sentinels to HTTP status codes. Middleware: `logger` (zerolog), `cors`, `auth`
+  (Clerk JWT).
 - `internal/adapters/persistence/{postgres,memory}/` — two implementations of the
   repository port. `postgres` wraps sqlc-generated queries over a pgx pool;
   `memory` is the no-DB fallback.
+- `internal/platform/validator/` — shared go-playground/validator instance used by
+  the service layer.
 - `internal/config/config.go` — env → typed `Config`; `Enabled()` per service.
 
 **Endpoints**: `GET /health`, `GET /swagger/*`, and `/api/v1/users`

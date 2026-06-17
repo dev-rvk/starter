@@ -8,12 +8,17 @@ backend makes business logic independent of frameworks. Common changes below.
 Mirror the `user` example. Say you're adding `widget`:
 
 1. **Domain** — `internal/domain/widget/`:
-   - `widget.go` — entity + value objects; put validation in the constructors so
-     an invalid `Widget` cannot exist.
+   - `widget.go` — entity with `validate:` struct tags for field rules (e.g.
+     `validate:"required,min=2,max=100"`). Validation is not done here — the
+     service layer handles it via the platform validator.
    - `port.go` — the `Repository` interface (the port the use cases depend on).
-   - `errors.go` — transport-agnostic domain errors.
+   - `errors.go` — transport-agnostic domain errors that wrap the shared sentinels:
+     `var ErrWidgetNotFound = fmt.Errorf("widget: %w", domain.ErrNotFound)`. This
+     lets `errors.Is(err, domain.ErrNotFound)` work at the HTTP layer.
 2. **Application** — `internal/application/widget/service.go`: use cases that take
-   the port and orchestrate the domain.
+   the port and orchestrate the domain. This is the **single source of truth for
+   validation** — call the platform validator (`internal/platform/validator`) to
+   check `validate:` struct tags on the entity before persisting.
 3. **Persistence** — add SQL:
    - `db/migrations/<ts>_create_widgets.sql` (`make migrate-new name=create_widgets`),
      then `make migrate`.
@@ -21,9 +26,14 @@ Mirror the `user` example. Say you're adding `widget`:
    - `make sqlc` to regenerate; implement the port in
      `internal/adapters/persistence/postgres/widget_repository.go` (wrap the
      generated queries) and optionally `memory/`.
-4. **HTTP** — `internal/adapters/http/widget_handler.go`: thin handlers with
-   binding-tag validation and swag annotations; register the routes; map domain
-   errors in `response.go`.
+4. **HTTP** — follow the flat naming convention:
+   - `internal/adapters/http/widget_handler.go` — thin handlers with swag
+     annotations; register routes.
+   - `internal/adapters/http/widget_dto.go` — request/response DTOs with only
+     `json:` tags (no `binding:` tags — DTOs are pure data shuttles).
+   - `response.go` already maps the shared sentinels (`domain.ErrNotFound` → 404,
+     `domain.ErrAlreadyExists` → 409, `domain.ErrValidation` → 422), so no
+     per-domain error imports are needed.
 5. **Wire** — construct the repo + service + handler in `cmd/api/main.go`.
 6. **Contract** — `make openapi && make gen-client` to refresh the typed client.
 

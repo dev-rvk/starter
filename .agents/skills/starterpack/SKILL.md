@@ -74,14 +74,29 @@ The Go API isolates business logic from frameworks. Dependencies point inward:
 
 ```
 cmd/api/main.go              composition root (config, logger, wiring, server)
-internal/domain/<x>/         entities, value objects (validation in constructors), ports
-internal/application/<x>/    use cases — depend only on ports
-internal/adapters/http/      Gin handlers (thin), DTOs, middleware, swag annotations
+internal/domain/errors.go    shared error sentinels (ErrNotFound, ErrAlreadyExists, ErrValidation)
+internal/domain/<x>/         entities (validate: struct tags), ports
+internal/application/<x>/    use cases — depend only on ports; single source of truth for validation
+internal/adapters/http/      Gin handlers (thin), DTOs (json tags only), middleware, swag annotations
 internal/adapters/persistence/  postgres (pgx + sqlc) and memory repositories
+internal/platform/validator/  shared go-playground/validator instance
 ```
 
-Handlers stay thin (decode → use case → encode). Validation happens twice: Gin
-binding tags at the edge and authoritative domain value-object constructors.
+Handlers stay thin (decode → use case → encode) in a flat structure using the
+naming convention `{resource}_handler.go` and `{resource}_dto.go`. DTOs are pure
+data shuttles with only `json:` tags — no `binding:` validation tags. Validation
+is the **single source of truth** in the application/service layer, which uses
+the platform validator (`internal/platform/validator`) to check `validate:` struct
+tags on domain entities.
+
+**Error handling**: shared domain error sentinels (`domain.ErrNotFound`,
+`domain.ErrAlreadyExists`, `domain.ErrValidation`) live in
+`internal/domain/errors.go`. Individual domains wrap these with
+`fmt.Errorf("user: %w", domain.ErrNotFound)` so `errors.Is()` works for both the
+specific and the shared sentinel. `response.go` imports only the shared
+`internal/domain` package and maps errors by category (`domain.ErrNotFound` → 404,
+`domain.ErrAlreadyExists` → 409, `domain.ErrValidation` → 422).
+
 Details and conventions in `references/architecture.md`.
 
 ### Design system

@@ -4,10 +4,13 @@ package userapp
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	userdomain "github.com/starterpack/api/internal/domain/user"
+	platformvalidator "github.com/starterpack/api/internal/platform/validator"
 )
 
 // Service implements the user use cases.
@@ -26,17 +29,23 @@ type CreateInput struct {
 	Email    string
 }
 
-// Create validates input via domain value objects, then persists the user.
+// Create validates input using struct tag validator, then persists the user.
 func (s *Service) Create(ctx context.Context, in CreateInput) (*userdomain.User, error) {
-	username, err := userdomain.NewUsername(in.Username)
-	if err != nil {
+	u := userdomain.New(uuid.NewString(), in.Username, in.Email, time.Now().UTC())
+	if err := platformvalidator.ValidateStruct(u); err != nil {
+		var valErrs validator.ValidationErrors
+		if errors.As(err, &valErrs) {
+			for _, fe := range valErrs {
+				if fe.Field() == "Username" {
+					return nil, userdomain.ErrInvalidUsername
+				}
+				if fe.Field() == "Email" {
+					return nil, userdomain.ErrInvalidEmail
+				}
+			}
+		}
 		return nil, err
 	}
-	email, err := userdomain.NewEmail(in.Email)
-	if err != nil {
-		return nil, err
-	}
-	u := userdomain.New(uuid.NewString(), username, email, time.Now().UTC())
 	if err := s.repo.Create(ctx, u); err != nil {
 		return nil, err
 	}

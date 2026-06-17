@@ -38,7 +38,7 @@ Makefile           Single entrypoint (wraps bun/turbo + Go toolchain)
 | Package manager / runtime | Bun |
 | Backend | Go, hexagonal (ports & adapters), **Gin**, **zerolog** |
 | DB access | **sqlc + pgx**; migrations via **Atlas** |
-| Go validation | `go-playground/validator` + domain value-object constructors |
+| Go validation | `go-playground/validator` via platform validator; single source of truth in service layer |
 | Frontend | **Vite + TanStack Router**, `app` + `web` split |
 | API contract | Go **OpenAPI** (swag) → **openapi-typescript + openapi-fetch** |
 | Design system | fresh **shadcn/ui** + Storybook + custom Clerk-wired auth forms |
@@ -115,12 +115,15 @@ package (no Next.js deps):
 Ports & adapters layout:
 ```
 cmd/api/main.go                  composition root (config, logger, wiring, server)
-internal/domain/user/            entity + Username/Email value objects + Repository port
-internal/application/user/       use cases (depend only on the port)
-internal/adapters/http/          Gin handlers, DTOs (validator tags), middleware
+internal/domain/errors.go        shared error sentinels (ErrNotFound, ErrAlreadyExists, ErrValidation)
+internal/domain/user/            entity (validate: struct tags) + Repository port
+internal/domain/todo/            (same pattern per resource)
+internal/application/user/       use cases — single source of truth for validation (platform validator)
+internal/adapters/http/          flat: {resource}_handler.go, {resource}_dto.go, response.go, middleware/
 internal/adapters/persistence/   postgres (pgx+sqlc) and memory implementations
 internal/config/                 env-driven feature toggles
 internal/platform/logger/        zerolog
+internal/platform/validator/     shared go-playground/validator instance
 db/{migrations,queries,schema.sql}  Atlas + sqlc inputs
 docs/                            generated OpenAPI spec (swag)
 ```
@@ -137,12 +140,22 @@ swag init -g cmd/api/main.go -o docs   # OpenAPI from annotations
 ```
 
 Key behaviours:
-- **Validation in two layers:** Gin binding tags (`binding:"min=2,max=6"`) at the
-  edge, and authoritative domain constructors (`NewUsername`/`NewEmail`).
+- **Validation (single source of truth):** validation happens **only** in the
+  application/service layer using the platform validator
+  (`internal/platform/validator`). Domain entities carry `validate:` struct tags
+  (e.g. `validate:"required,min=2,max=6"`). HTTP DTOs are pure data shuttles
+  with only `json:` tags — no `binding:` validation tags.
+- **Shared domain error sentinels:** `internal/domain/errors.go` defines
+  `ErrNotFound`, `ErrAlreadyExists`, `ErrValidation`. Individual domains wrap
+  these: `fmt.Errorf("user: %w", domain.ErrNotFound)` so `errors.Is()` works.
+  `response.go` imports only the shared `internal/domain` package and maps by
+  category: `domain.ErrNotFound` → 404, `domain.ErrAlreadyExists` → 409,
+  `domain.ErrValidation` → 422.
+- **Flat handler structure:** handlers use `{resource}_handler.go` and DTOs use
+  `{resource}_dto.go` in the flat `internal/adapters/http/` package.
 - **Feature toggles:** `internal/config` reads env; each optional service has an
   `Enabled()`; Clerk middleware is mounted only when keyed; without
   `DATABASE_URL` the API uses the in-memory repository so it always boots.
-- **Errors:** domain errors are mapped to HTTP status in `adapters/http/response.go`.
 
 ## Phase 3 — Frontend apps (Vite + TanStack Router)
 

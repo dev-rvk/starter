@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	userdomain "github.com/starterpack/api/internal/domain/user"
+	"github.com/starterpack/api/internal/domain"
 )
 
 // ErrorResponse is the standard error envelope returned by the API.
@@ -17,16 +17,19 @@ func respondError(c *gin.Context, status int, msg string) {
 	c.JSON(status, ErrorResponse{Error: msg})
 }
 
-// mapDomainError translates transport-agnostic domain errors into HTTP statuses.
+// mapDomainError translates domain errors into HTTP statuses. Because every
+// domain wraps the shared sentinels (domain.ErrNotFound, domain.ErrValidation,
+// etc.), this function works for any domain without importing it.
 func mapDomainError(err error) (int, string) {
 	switch {
-	case errors.Is(err, userdomain.ErrNotFound):
+	case errors.Is(err, domain.ErrNotFound):
 		return http.StatusNotFound, err.Error()
-	case errors.Is(err, userdomain.ErrAlreadyExists):
+	case errors.Is(err, domain.ErrAlreadyExists):
 		return http.StatusConflict, err.Error()
-	case errors.Is(err, userdomain.ErrInvalidUsername), errors.Is(err, userdomain.ErrInvalidEmail):
+	case errors.Is(err, domain.ErrValidation):
 		return http.StatusUnprocessableEntity, err.Error()
 	default:
 		return http.StatusInternalServerError, "internal server error"
 	}
 }
+

@@ -61,19 +61,29 @@ apps/api/
 ├── cmd/api/main.go                       # composition root
 ├── internal/
 │   ├── config/config.go                  # env → typed Config + feature toggles
-│   ├── domain/user/                       # entity, value objects, Repository PORT
-│   │   ├── user.go                        #   Username/Email validate in constructors
-│   │   ├── port.go                        #   Repository interface (the port)
-│   │   └── errors.go                      #   transport-agnostic domain errors
-│   ├── application/user/service.go        # use cases (depend only on the port)
+│   ├── domain/
+│   │   ├── errors.go                      # shared error sentinels (ErrNotFound, ErrAlreadyExists, ErrValidation)
+│   │   ├── user/                          # entity (validate: struct tags), Repository PORT
+│   │   │   ├── user.go                    #   entity with validate: struct tags
+│   │   │   ├── port.go                    #   Repository interface (the port)
+│   │   │   └── errors.go                  #   wraps shared sentinels: fmt.Errorf("user: %w", domain.ErrNotFound)
+│   │   └── todo/                          # (same pattern per resource)
+│   ├── application/user/service.go        # use cases — single source of truth for validation (platform validator)
 │   ├── adapters/
-│   │   ├── http/                          # Gin handlers, DTOs, response mapping
+│   │   ├── http/                          # flat: {resource}_handler.go, {resource}_dto.go, response.go
+│   │   │   ├── user_handler.go            #   thin Gin handler + swag annotations
+│   │   │   ├── user_dto.go                #   pure data shuttle (json tags only, no binding tags)
+│   │   │   ├── todo_handler.go            #   (same pattern per resource)
+│   │   │   ├── todo_dto.go
+│   │   │   ├── response.go                #   maps shared domain sentinels → HTTP status
 │   │   │   └── middleware/                #   logger (zerolog), cors, clerk auth
 │   │   └── persistence/
 │   │       ├── postgres/                  # pgx pool + sqlc-generated queries
 │   │       │   └── sqlc/                   #   GENERATED — do not edit by hand
 │   │       └── memory/                    # in-memory repo (no-DB fallback)
-│   └── platform/logger/                   # zerolog setup
+│   └── platform/
+│       ├── logger/                         # zerolog setup
+│       └── validator/                      # shared go-playground/validator instance
 ├── db/
 │   ├── migrations/                        # Atlas versioned migrations
 │   ├── queries/                           # sqlc input queries
@@ -82,6 +92,23 @@ apps/api/
 ├── sqlc.yaml
 └── go.mod
 ```
+
+**Validation**: happens **only** in the application/service layer (single source of
+truth). Domain entities carry `validate:` struct tags; the platform validator
+(`internal/platform/validator`) checks them. HTTP DTOs are pure data shuttles with
+only `json:` tags — no `binding:` validation tags.
+
+**Error handling**: shared error sentinels in `internal/domain/errors.go`
+(`domain.ErrNotFound`, `domain.ErrAlreadyExists`, `domain.ErrValidation`). Each
+domain wraps these: `fmt.Errorf("user: %w", domain.ErrNotFound)` so `errors.Is()`
+matches both the specific wrapped error and the shared sentinel. `response.go`
+imports only the shared `internal/domain` package (not each individual domain) and
+maps errors by category: `domain.ErrNotFound` → 404, `domain.ErrAlreadyExists` →
+409, `domain.ErrValidation` → 422.
+
+**File naming convention**: handlers use a flat `internal/adapters/http/` package
+with `{resource}_handler.go` and `{resource}_dto.go` (e.g. `user_handler.go`,
+`user_dto.go`, `todo_handler.go`, `todo_dto.go`).
 
 **Module path**: `github.com/starterpack/api`. **Adding a domain**: see
 `references/customization.md`.

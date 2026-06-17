@@ -26,7 +26,7 @@ func (r *UserRepository) Create(_ context.Context, u *userdomain.User) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for _, ex := range r.users {
-		if ex.Username.String() == u.Username.String() || ex.Email.String() == u.Email.String() {
+		if ex.Username == u.Username || ex.Email == u.Email {
 			return userdomain.ErrAlreadyExists
 		}
 	}
