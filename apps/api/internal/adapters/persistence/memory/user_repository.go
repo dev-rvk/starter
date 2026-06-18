@@ -11,6 +11,9 @@ import (
 	userdomain "github.com/starterpack/api/internal/domain/user"
 )
 
+// Verify UserRepository implements the domain port at compile time.
+var _ userdomain.Repository = (*UserRepository)(nil)
+
 // UserRepository is a goroutine-safe in-memory user store.
 type UserRepository struct {
 	mu    sync.RWMutex

@@ -1,17 +1,12 @@
+// Package user domain errors. Uses the structured domain.Error constructors
+// so errors carry Kind, Entity, and Message. Validation field errors are
+// handled generically by platformvalidator.ValidateAndMap — no per-field
+// sentinel needed here.
 package user
 
-import (
-	"fmt"
+import "github.com/starterpack/api/internal/domain"
 
-	"github.com/starterpack/api/internal/domain"
-)
-
-// Domain-level errors. These wrap the shared sentinels from the domain package
-// so the HTTP adapter can map them by category (not-found, conflict, validation)
-// without importing every individual domain.
 var (
-	ErrInvalidUsername = fmt.Errorf("username must be 2-6 characters, letters/digits/underscores: %w", domain.ErrValidation)
-	ErrInvalidEmail    = fmt.Errorf("invalid email address: %w", domain.ErrValidation)
-	ErrNotFound        = fmt.Errorf("user %w", domain.ErrNotFound)
-	ErrAlreadyExists   = fmt.Errorf("user %w", domain.ErrAlreadyExists)
+	ErrNotFound      = domain.NotFound("user")
+	ErrAlreadyExists = domain.AlreadyExists("user")
 )

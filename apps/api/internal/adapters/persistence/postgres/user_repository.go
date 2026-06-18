@@ -12,6 +12,9 @@ import (
 	userdomain "github.com/starterpack/api/internal/domain/user"
 )
 
+// Verify UserRepository implements the domain port at compile time.
+var _ userdomain.Repository = (*UserRepository)(nil)
+
 // UserRepository implements userdomain.Repository backed by Postgres via sqlc.
 type UserRepository struct {
 	q *sqlc.Queries

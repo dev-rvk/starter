@@ -1,9 +1,12 @@
 package validator
 
 import (
+	"errors"
+	"fmt"
 	"regexp"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/starterpack/api/internal/domain"
 )
 
 var (
@@ -29,4 +32,24 @@ func ValidateStruct(s interface{}) error {
 // Instance returns the raw validator instance for extension.
 func Instance() *validator.Validate {
 	return validate
+}
+
+// ValidateAndMap validates a struct and maps the first field failure to a
+// structured domain.Error. This eliminates the per-field sentinel boilerplate
+// that would otherwise be needed in every service method.
+func ValidateAndMap(entity string, s interface{}) error {
+	err := ValidateStruct(s)
+	if err == nil {
+		return nil
+	}
+	var valErrs validator.ValidationErrors
+	if errors.As(err, &valErrs) {
+		fe := valErrs[0]
+		return domain.ValidationError(
+			entity,
+			fe.Field(),
+			fmt.Sprintf("%s failed on '%s' rule", fe.Field(), fe.Tag()),
+		)
+	}
+	return err
 }

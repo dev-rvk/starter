@@ -17,10 +17,24 @@ func respondError(c *gin.Context, status int, msg string) {
 	c.JSON(status, ErrorResponse{Error: msg})
 }
 
-// mapDomainError translates domain errors into HTTP statuses. Because every
-// domain wraps the shared sentinels (domain.ErrNotFound, domain.ErrValidation,
-// etc.), this function works for any domain without importing it.
+// mapDomainError translates domain errors into HTTP statuses. It prefers the
+// structured domain.Error type (via errors.As) and falls back to sentinel
+// errors.Is checks for backward compatibility.
 func mapDomainError(err error) (int, string) {
+	// Prefer the structured error type.
+	var domErr *domain.Error
+	if errors.As(err, &domErr) {
+		switch domErr.Kind {
+		case domain.KindNotFound:
+			return http.StatusNotFound, domErr.Message
+		case domain.KindAlreadyExists:
+			return http.StatusConflict, domErr.Message
+		case domain.KindValidation:
+			return http.StatusUnprocessableEntity, domErr.Message
+		}
+	}
+
+	// Fallback: sentinel errors (backward compat).
 	switch {
 	case errors.Is(err, domain.ErrNotFound):
 		return http.StatusNotFound, err.Error()
