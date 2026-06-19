@@ -1,8 +1,9 @@
-# Changes — starterpack vs. stock next-forge
+# Changes & Decisions — starterpack
 
 This document records every change made to re-platform **next-forge** (Next.js +
 Prisma) into **starterpack** (Vite + TanStack Router frontend, Go hexagonal
-backend), and how to reproduce each step manually. It mirrors the git history:
+backend), how to reproduce each step manually, and the ongoing architectural
+decisions adopted for this codebase.
 
 | Commit | Phase |
 |--------|-------|
@@ -12,6 +13,7 @@ backend), and how to reproduce each step manually. It mirrors the git history:
 | `Go hexagonal backend` | 4 — `apps/api` |
 | `Vite + TanStack Router frontends` | 3 — `apps/app`, `apps/web` |
 | `typed OpenAPI client + Makefile` | 5 & 6 |
+| `Uber Go Style Guide adoption` | 7 — architecture standards |
 
 ## Final structure
 
@@ -29,19 +31,22 @@ packages/
   email/           Resend + React Email templates — kept, key-gated
   typescript-config/  Shared tsconfig presets — kept
 Makefile           Single entrypoint (wraps bun/turbo + Go toolchain)
+change.md          16-item prioritised Go architecture change plan
 ```
 
 ## Tooling decisions
 
 | Concern | Choice |
-|--------|--------|
+|---------|--------|
 | Package manager / runtime | Bun |
 | Backend | Go, hexagonal (ports & adapters), **Gin**, **zerolog** |
 | DB access | **sqlc + pgx**; migrations via **Atlas** |
-| Go validation | `go-playground/validator` via platform validator; single source of truth in service layer |
+| Go validation | `go-playground/validator` via `Validator` struct (DI, no `init()`); single source of truth in service layer |
 | Frontend | **Vite + TanStack Router**, `app` + `web` split |
 | API contract | Go **OpenAPI** (swag) → **openapi-typescript + openapi-fetch** |
 | Design system | fresh **shadcn/ui** + Storybook + custom Clerk-wired auth forms |
+| Go style guide | **Uber Go Style Guide** — full rules in `.agents/skills/starterpack/references/good-practices.md` |
+| Go linting | **golangci-lint** with config at `apps/api/.golangci.yml` |
 
 ---
 
@@ -112,23 +117,27 @@ package (no Next.js deps):
 
 ## Phase 4 — Go hexagonal backend (`apps/api`)
 
-Ports & adapters layout:
+Ports & adapters layout (target state — see `change.md` for in-progress items):
+
 ```
-cmd/api/main.go                  composition root (config, logger, wiring, server)
-internal/domain/errors.go        shared error sentinels (ErrNotFound, ErrAlreadyExists, ErrValidation)
+cmd/api/main.go                  run() error + single os.Exit in main()
+internal/domain/errors.go        structured domain.Error type + KindUnknown/NotFound/AlreadyExists/Validation
 internal/domain/user/            entity (validate: struct tags) + Repository port
 internal/domain/todo/            (same pattern per resource)
-internal/application/user/       use cases — single source of truth for validation (platform validator)
+internal/application/user/       use cases + UserService interface + compile-time check
+internal/application/todo/       use cases + TodoService interface + compile-time check
 internal/adapters/http/          flat: {resource}_handler.go, {resource}_dto.go, response.go, middleware/
-internal/adapters/persistence/   postgres (pgx+sqlc) and memory implementations
-internal/config/                 env-driven feature toggles
+internal/adapters/persistence/   postgres (pgx+sqlc) and memory implementations, each with interface compliance
+internal/config/                 env-driven feature toggles (Enabled() per service)
 internal/platform/logger/        zerolog
-internal/platform/validator/     shared go-playground/validator instance
+internal/platform/validator/     Validator struct with New() constructor — no init(), no global var
 db/{migrations,queries,schema.sql}  Atlas + sqlc inputs
 docs/                            generated OpenAPI spec (swag)
+apps/api/.golangci.yml           golangci-lint config
 ```
 
 Reproduce:
+
 ```bash
 cd apps/api && go mod init github.com/starterpack/api
 go get github.com/gin-gonic/gin github.com/rs/zerolog github.com/jackc/pgx/v5 \
@@ -140,19 +149,36 @@ swag init -g cmd/api/main.go -o docs   # OpenAPI from annotations
 ```
 
 Key behaviours:
+
 - **Validation (single source of truth):** validation happens **only** in the
-  application/service layer using the platform validator
-  (`internal/platform/validator`). Domain entities carry `validate:` struct tags
-  (e.g. `validate:"required,min=2,max=6"`). HTTP DTOs are pure data shuttles
-  with only `json:` tags — no `binding:` validation tags.
-- **Shared domain error sentinels:** `internal/domain/errors.go` defines
-  `ErrNotFound`, `ErrAlreadyExists`, `ErrValidation`. Individual domains wrap
-  these: `fmt.Errorf("user: %w", domain.ErrNotFound)` so `errors.Is()` works.
-  `response.go` imports only the shared `internal/domain` package and maps by
-  category: `domain.ErrNotFound` → 404, `domain.ErrAlreadyExists` → 409,
-  `domain.ErrValidation` → 422.
-- **Flat handler structure:** handlers use `{resource}_handler.go` and DTOs use
-  `{resource}_dto.go` in the flat `internal/adapters/http/` package.
+  application/service layer using the injected `*validator.Validator`. Domain
+  entities carry `validate:` struct tags. HTTP DTOs are pure data shuttles with
+  only `json:` tags — no `binding:` tags.
+
+- **Structured domain errors:** `internal/domain/errors.go` defines a
+  `domain.Error` struct with `Kind` (KindUnknown=0, KindNotFound=1,
+  KindAlreadyExists=2, KindValidation=3) and wraps sentinel errors. Use the
+  constructors: `domain.NotFound("user")`, `domain.AlreadyExists("user")`,
+  `domain.ValidationError("user","Email","reason")`. `response.go` maps
+  `domErr.Kind` → HTTP status; `KindUnknown` → 500.
+
+- **Interface compliance:** every adapter file carries
+  `var _ xdomain.Repository = (*XRepository)(nil)`. Every handler takes
+  the `XService` interface, not `*Service`.
+
+- **No `init()` in application code:** `platform/validator` exposes a `Validator`
+  struct instantiated via `New()` in `cmd/api/main.go` and injected into services.
+
+- **Exit Once:** all startup logic is in `run() error`; `main()` calls
+  `os.Exit(1)` at most once, on `run()` returning an error.
+
+- **Goroutine lifecycle:** the server goroutine sends on a buffered error channel;
+  `run()` selects on that channel and the OS quit signal so no goroutine is
+  left unobserved.
+
+- **Flat handler structure:** `{resource}_handler.go` and `{resource}_dto.go` in
+  the flat `internal/adapters/http/` package.
+
 - **Feature toggles:** `internal/config` reads env; each optional service has an
   `Enabled()`; Clerk middleware is mounted only when keyed; without
   `DATABASE_URL` the API uses the in-memory repository so it always boots.
@@ -188,6 +214,22 @@ an `ApiProvider` (token-aware when Clerk is on, plain otherwise).
 Root **Makefile** is the single entrypoint — see `make help`. It wraps bun/turbo
 for JS and the Go toolchain for the backend; `make dev` runs the Go API and all
 JS apps concurrently.
+
+## Phase 7 — Uber Go Style Guide adoption
+
+The Go backend now targets the **Uber Go Style Guide** as its canonical code
+standard. Applied rules and rationale are in
+`.agents/skills/starterpack/references/good-practices.md`.
+
+Prioritised changes are tracked in `change.md` (16 items, 5 waves). Summary:
+
+| Wave | Theme | Key changes |
+|------|-------|-------------|
+| 1 | Correctness | Remove `init()` from validator; `run() error` in main; `KindUnknown=0` enum fix |
+| 2 | Interface hygiene | Compile-time checks; service interfaces; wire TodoHandler |
+| 3 | Style & performance | 3-group imports; slice pre-allocation; `.golangci.yml` |
+| 4 | Testing | Table-driven tests for all services + handlers |
+| 5 | Observability | Request-ID middleware; `go.uber.org/atomic`; functional options; Prometheus metrics |
 
 ---
 
@@ -233,10 +275,12 @@ URL from env in the relevant config — mirroring the Postgres pattern.
 
 ## Deferred (intentionally not in this pass)
 
-- Observability stack (Prometheus + Grafana)
+- Observability stack (Prometheus + Grafana) — tracked as Wave 5 in `change.md`
 - SSR/SEO for the marketing site (currently a client-rendered SPA)
 - Stripe checkout, Resend sending, self-hosted PostHog wiring
 - Deployment manifests (Docker images / Compose / hosting)
+- Request-ID middleware — tracked as Wave 5 in `change.md`
+- Functional options pattern on services — tracked as Wave 5 in `change.md`
 
 ## Known follow-ups
 
@@ -245,3 +289,9 @@ URL from env in the relevant config — mirroring the Postgres pattern.
 - The app's main JS chunk is large; add route-level `manualChunks` later.
 - Live DB path (Atlas → pgx) verified structurally via sqlc codegen; run
   `make db-apply && make dev` against a real PostgreSQL to exercise it end-to-end.
+- **Wave 1–5 Go changes** are documented in `change.md`; tackle in order to avoid
+  disruption between waves.
+- `TodoHandler` is missing from the HTTP adapter — tracked as Wave 2 in
+  `change.md`; domain + service already exist.
+- `apps/api/.golangci.yml` to be added as part of Wave 3; run
+  `golangci-lint run ./...` inside `apps/api/` manually until then.

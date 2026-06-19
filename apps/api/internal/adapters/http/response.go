@@ -31,6 +31,8 @@ func mapDomainError(err error) (int, string) {
 			return http.StatusConflict, domErr.Message
 		case domain.KindValidation:
 			return http.StatusUnprocessableEntity, domErr.Message
+		default:
+			return http.StatusInternalServerError, "internal server error"
 		}
 	}
 

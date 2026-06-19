@@ -12,7 +12,7 @@ import (
 	userdomain "github.com/starterpack/api/internal/domain/user"
 )
 
-// Verify UserRepository implements the domain port at compile time.
+// Compile-time interface check.
 var _ userdomain.Repository = (*UserRepository)(nil)
 
 // UserRepository implements userdomain.Repository backed by Postgres via sqlc.
@@ -50,7 +50,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*userdomain.Us
 		}
 		return nil, err
 	}
-	return toDomain(row)
+	return toDomain(row), nil
 }
 
 func (r *UserRepository) List(ctx context.Context, limit, offset int32) ([]*userdomain.User, error) {
@@ -60,23 +60,19 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int32) ([]*user
 	}
 	out := make([]*userdomain.User, 0, len(rows))
 	for _, row := range rows {
-		u, err := toDomain(row)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, u)
+		out = append(out, toDomain(row))
 	}
 	return out, nil
 }
 
-func toDomain(row sqlc.User) (*userdomain.User, error) {
+func toDomain(row sqlc.User) *userdomain.User {
 	return &userdomain.User{
 		ID:        row.ID,
 		Username:  row.Username,
 		Email:     row.Email,
 		CreatedAt: row.CreatedAt,
 		UpdatedAt: row.UpdatedAt,
-	}, nil
+	}
 }
 
 func isUniqueViolation(err error) bool {
