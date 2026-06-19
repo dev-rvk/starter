@@ -58,60 +58,83 @@ Dependencies point inward — domain knows nothing of HTTP or SQL.
 
 ```
 apps/api/
-├── cmd/api/main.go                       # composition root
+├── cmd/api/main.go                       # composition root: run() error + single os.Exit in main()
 ├── internal/
-│   ├── config/config.go                  # env → typed Config + feature toggles
+│   ├── config/config.go                  # env → typed Config + Enabled() feature toggles
 │   ├── domain/
-│   │   ├── errors.go                      # shared error sentinels (ErrNotFound, ErrAlreadyExists, ErrValidation)
-│   │   ├── user/                          # entity (validate: struct tags), Repository PORT
-│   │   │   ├── user.go                    #   entity with validate: struct tags
-│   │   │   ├── port.go                    #   Repository interface (the port)
-│   │   │   └── errors.go                  #   wraps shared sentinels: fmt.Errorf("user: %w", domain.ErrNotFound)
-│   │   └── todo/                          # (same pattern per resource)
-│   ├── application/user/service.go        # use cases — single source of truth for validation (platform validator)
+│   │   ├── errors.go                     # structured domain.Error type + KindUnknown/NotFound/AlreadyExists/Validation
+│   │   ├── user/                         # entity (validate: struct tags), Repository PORT, XService interface
+│   │   │   ├── user.go                   #   entity with validate: struct tags
+│   │   │   ├── port.go                   #   Repository interface (the port)
+│   │   │   └── errors.go                 #   domain.NotFound("user") / domain.ValidationError(...)
+│   │   └── todo/                         # (same pattern per resource)
+│   ├── application/
+│   │   ├── user/
+│   │   │   └── service.go               # use cases + UserService interface + var _ UserService = (*Service)(nil)
+│   │   └── todo/
+│   │       └── service.go               # use cases + TodoService interface + var _ TodoService = (*Service)(nil)
 │   ├── adapters/
-│   │   ├── http/                          # flat: {resource}_handler.go, {resource}_dto.go, response.go
-│   │   │   ├── user_handler.go            #   thin Gin handler + swag annotations
-│   │   │   ├── user_dto.go                #   pure data shuttle (json tags only, no binding tags)
-│   │   │   ├── todo_handler.go            #   (same pattern per resource)
+│   │   ├── http/                         # flat: {resource}_handler.go, {resource}_dto.go, response.go
+│   │   │   ├── user_handler.go           #   takes UserService interface (not *userapp.Service)
+│   │   │   ├── user_dto.go               #   pure data shuttle (json tags only, no binding tags)
+│   │   │   ├── todo_handler.go           #   (same pattern)
 │   │   │   ├── todo_dto.go
-│   │   │   ├── response.go                #   maps shared domain sentinels → HTTP status
-│   │   │   └── middleware/                #   logger (zerolog), cors, clerk auth
+│   │   │   ├── response.go               #   maps domain.Error.Kind → HTTP status; KindUnknown → 500
+│   │   │   └── middleware/               #   logger (zerolog), cors, clerk auth, requestid
 │   │   └── persistence/
-│   │       ├── postgres/                  # pgx pool + sqlc-generated queries
-│   │       │   └── sqlc/                   #   GENERATED — do not edit by hand
-│   │       └── memory/                    # in-memory repo (no-DB fallback)
+│   │       ├── postgres/                 # pgx pool + sqlc-generated queries
+│   │       │   ├── user_repository.go    #   var _ userdomain.Repository = (*UserRepository)(nil)
+│   │       │   ├── todo_repository.go    #   var _ tododomain.Repository = (*TodoRepository)(nil)
+│   │       │   └── sqlc/                 #   GENERATED — do not edit by hand
+│   │       └── memory/                   # in-memory repo (no-DB fallback)
+│   │           ├── user_repository.go    #   var _ userdomain.Repository = (*UserRepository)(nil)
+│   │           └── todo_repository.go    #   var _ tododomain.Repository = (*TodoRepository)(nil)
 │   └── platform/
-│       ├── logger/                         # zerolog setup
-│       └── validator/                      # shared go-playground/validator instance
+│       ├── logger/                       # zerolog setup
+│       └── validator/                    # Validator struct with New() constructor (no init(), no global var)
 ├── db/
-│   ├── migrations/                        # Atlas versioned migrations
-│   ├── queries/                           # sqlc input queries
-│   └── schema.sql                         # desired schema state -> sqlc input
-├── docs/                                  # GENERATED OpenAPI spec (swag)
+│   ├── migrations/                       # Atlas versioned migrations
+│   ├── queries/                          # sqlc input queries
+│   └── schema.sql                        # desired schema state -> sqlc input
+├── docs/                                 # GENERATED OpenAPI spec (swag)
+├── .golangci.yml                         # linter config (goimports, errcheck, staticcheck, prealloc, …)
 ├── sqlc.yaml
 └── go.mod
 ```
 
 **Validation**: happens **only** in the application/service layer (single source of
-truth). Domain entities carry `validate:` struct tags; the platform validator
-(`internal/platform/validator`) checks them. HTTP DTOs are pure data shuttles with
-only `json:` tags — no `binding:` validation tags.
+truth). Domain entities carry `validate:` struct tags; the `platform/validator`
+`Validator` struct (injected via `New()`) checks them. HTTP DTOs are pure data
+shuttles with only `json:` tags — no `binding:` validation tags.
 
-**Error handling**: shared error sentinels in `internal/domain/errors.go`
-(`domain.ErrNotFound`, `domain.ErrAlreadyExists`, `domain.ErrValidation`). Each
-domain wraps these: `fmt.Errorf("user: %w", domain.ErrNotFound)` so `errors.Is()`
-matches both the specific wrapped error and the shared sentinel. `response.go`
-imports only the shared `internal/domain` package (not each individual domain) and
-maps errors by category: `domain.ErrNotFound` → 404, `domain.ErrAlreadyExists` →
-409, `domain.ErrValidation` → 422.
+**Error handling**: the shared `domain.Error` struct in `internal/domain/errors.go`
+carries a `Kind` (KindUnknown=0, KindNotFound=1, KindAlreadyExists=2,
+KindValidation=3) and wraps the corresponding sentinel so both `errors.Is()` and
+`errors.As()` work. Use the constructors: `domain.NotFound("user")`,
+`domain.AlreadyExists("user")`, `domain.ValidationError("user","Email","reason")`.
+`response.go` maps `domErr.Kind` to HTTP status; `KindUnknown` → 500.
+
+**Interface compliance**: every adapter carries `var _ Port = (*Impl)(nil)` at the
+top of the file. Handlers depend on the `XService` interface defined alongside the
+service, not the concrete `*Service` type.
+
+**No `init()` in application code**: `platform/validator` exposes `New()` and is
+instantiated and injected in `cmd/api/main.go`.
+
+**Exit Once**: `main()` calls `os.Exit(1)` at most once. All startup, wiring, and
+server-lifecycle logic lives in `run() error`. Errors surface via `return`, not
+`log.Fatal`.
+
+**Goroutine lifecycle**: the HTTP server goroutine sends on a buffered error channel;
+`run()` selects on that channel and the OS signal channel, ensuring the goroutine's
+result is always observed before shutdown proceeds.
 
 **File naming convention**: handlers use a flat `internal/adapters/http/` package
 with `{resource}_handler.go` and `{resource}_dto.go` (e.g. `user_handler.go`,
 `user_dto.go`, `todo_handler.go`, `todo_dto.go`).
 
 **Module path**: `github.com/starterpack/api`. **Adding a domain**: see
-`references/customization.md`.
+`references/customization.md` and the checklist in `references/good-practices.md`.
 
 ## Package Naming
 

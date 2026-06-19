@@ -5,17 +5,18 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+
 	userapp "github.com/starterpack/api/internal/application/user"
 )
 
 // UserHandler is the HTTP adapter for the user use cases. Handlers stay thin:
 // decode -> call use case -> encode. No business logic lives here.
 type UserHandler struct {
-	svc *userapp.Service
+	svc userapp.UserService
 }
 
-// NewUserHandler constructs the handler from the application service.
-func NewUserHandler(svc *userapp.Service) *UserHandler {
+// NewUserHandler constructs the handler from the application service interface.
+func NewUserHandler(svc userapp.UserService) *UserHandler {
 	return &UserHandler{svc: svc}
 }
 

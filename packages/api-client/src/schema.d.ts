@@ -156,8 +156,8 @@ export interface components {
             error?: string;
         };
         "http.createUserRequest": {
-            email: string;
-            username: string;
+            email?: string;
+            username?: string;
         };
         "http.userResponse": {
             createdAt?: string;

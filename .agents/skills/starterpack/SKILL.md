@@ -1,6 +1,6 @@
 ---
 name: starterpack
-description: Expert assistance for the starterpack monorepo — a deployable Turborepo with a Vite + TanStack Router frontend, a Go hexagonal (ports & adapters) backend, a shadcn/ui design system, and feature-toggled SaaS integrations. Use this skill whenever the user is working in this repo or asks about its structure, apps, packages, the Go backend (Gin, zerolog, sqlc, pgx, Atlas, Clerk), the Vite apps, the design system, the typed API client, the Makefile workflow, feature toggles, environment variables, or how to add features and deploy — even if they don't name "starterpack" explicitly.
+description: Expert assistance for the starterpack monorepo — a deployable Turborepo with a Vite + TanStack Router frontend, a Go hexagonal (ports & adapters) backend, a shadcn/ui design system, and feature-toggled SaaS integrations. Use this skill whenever the user is working in this repo or asks about its structure, apps, packages, the Go backend (Gin, zerolog, sqlc, pgx, Atlas, Clerk), the Vite apps, the design system, the typed API client, the Makefile workflow, feature toggles, environment variables, how to add features, how to deploy, Go best practices, or the Uber Go Style Guide as applied to this codebase — even if they don't name "starterpack" explicitly.
 ---
 
 # starterpack
@@ -74,12 +74,12 @@ The Go API isolates business logic from frameworks. Dependencies point inward:
 
 ```
 cmd/api/main.go              composition root (config, logger, wiring, server)
-internal/domain/errors.go    shared error sentinels (ErrNotFound, ErrAlreadyExists, ErrValidation)
-internal/domain/<x>/         entities (validate: struct tags), ports
-internal/application/<x>/    use cases — depend only on ports; single source of truth for validation
-internal/adapters/http/      Gin handlers (thin), DTOs (json tags only), middleware, swag annotations
+internal/domain/errors.go    shared structured error type + sentinels
+internal/domain/<x>/         entities (validate: struct tags), Repository port interface
+internal/application/<x>/    use cases + XService interface — depend only on ports
+internal/adapters/http/      Gin handlers (thin), DTOs (json tags only), middleware
 internal/adapters/persistence/  postgres (pgx + sqlc) and memory repositories
-internal/platform/validator/  shared go-playground/validator instance
+internal/platform/validator/  Validator struct (New() constructor, no init())
 ```
 
 Handlers stay thin (decode → use case → encode) in a flat structure using the
@@ -89,15 +89,25 @@ is the **single source of truth** in the application/service layer, which uses
 the platform validator (`internal/platform/validator`) to check `validate:` struct
 tags on domain entities.
 
-**Error handling**: shared domain error sentinels (`domain.ErrNotFound`,
-`domain.ErrAlreadyExists`, `domain.ErrValidation`) live in
-`internal/domain/errors.go`. Individual domains wrap these with
-`fmt.Errorf("user: %w", domain.ErrNotFound)` so `errors.Is()` works for both the
-specific and the shared sentinel. `response.go` imports only the shared
-`internal/domain` package and maps errors by category (`domain.ErrNotFound` → 404,
-`domain.ErrAlreadyExists` → 409, `domain.ErrValidation` → 422).
+**Error handling**: shared structured `domain.Error` type in
+`internal/domain/errors.go`. Constructors: `domain.NotFound("user")`,
+`domain.AlreadyExists("user")`, `domain.ValidationError("user","Field","reason")`.
+Each carries a `Kind` (KindUnknown=0, KindNotFound=1, KindAlreadyExists=2,
+KindValidation=3) and wraps the corresponding sentinel so both `errors.Is()` and
+`errors.As()` work. `response.go` imports only the shared `internal/domain` package
+and maps error kinds to HTTP status codes.
+
+**Interface compliance**: every port implementation carries a compile-time
+assertion (`var _ userdomain.Repository = (*UserRepository)(nil)`). Every handler
+takes the application-layer **interface** (`userapp.UserService`), not the
+concrete `*Service` type.
+
+**No `init()`**: the platform validator uses `New()` constructor, instantiated in
+`cmd/api/main.go` and injected into services. The only `init()` in the codebase
+is the blank import for the Swagger docs registry.
 
 Details and conventions in `references/architecture.md`.
+Full Uber Style Guide rules in `references/good-practices.md`.
 
 ### Design system
 
@@ -176,6 +186,55 @@ make test    # bun test + go test
 make build   # all JS apps (turbo) + the Go binary
 ```
 
+## Uber Go Style Guide — critical rules for this codebase
+
+The applied rules are in `references/good-practices.md`. Non-negotiable rules:
+
+| Rule | What it means here |
+|------|-------------------|
+| **No `init()`** | `platform/validator` uses `New()` + DI, not package globals |
+| **Exit Once** | `main()` only calls `os.Exit(1)` once; startup logic lives in `run() error` |
+| **Start Enums at 1** | `ErrorKind`: `KindUnknown=0`, `KindNotFound=1`, `KindAlreadyExists=2`, `KindValidation=3` |
+| **Interface compliance** | `var _ Repository = (*Impl)(nil)` in every adapter file |
+| **Depend on interfaces** | Handlers take `XService` interface, not `*Service` |
+| **No fire-and-forget goroutines** | Server goroutine exposes error channel; graceful shutdown waits for it |
+| **Avoid mutable globals** | Inject the validator; do not read package-level vars from service code |
+| **Error once** | Either wrap-and-return OR log-and-degrade; never both |
+| **Error wrapping** | `fmt.Errorf("context: %w", err)` — terse context prefix, no "failed to" |
+| **3-group imports** | stdlib / external / internal, each separated by a blank line |
+| **Pre-allocate slices** | `make([]T, 0, len(source))` when output size is known |
+| **Table-driven tests** | Every function with >1 input case must have a `tests := []struct{...}` |
+| **Functional Options** | Use `Option func(*T)` for constructors with optional deps |
+| **Type assertions** | Always use comma-ok: `v, ok := x.(T)` |
+| **`time.Time`/`time.Duration`** | Never raw `int` for timestamps or durations |
+| **Field tags** | Every marshalled struct field must have explicit `json:` tag |
+
+## Adding a domain — full checklist
+
+```
+internal/domain/<x>/
+  <x>.go            entity with validate: struct tags
+  port.go           Repository interface
+  errors.go         domain.NotFound("x") / domain.ValidationError(...) constructors
+
+internal/application/<x>/
+  service.go        use cases + XService interface + var _ XService = (*Service)(nil)
+
+internal/adapters/persistence/postgres/
+  <x>_repository.go var _ xdomain.Repository = (*XRepository)(nil)
+
+internal/adapters/persistence/memory/
+  <x>_repository.go var _ xdomain.Repository = (*XRepository)(nil)
+
+internal/adapters/http/
+  <x>_handler.go    thin Gin handlers (decode → service → encode) + swag annotations
+  <x>_dto.go        DTOs with only json: tags, no binding: tags
+
+db/queries/<x>.sql   sqlc annotations
+```
+
+After all files exist: `make sqlc && make openapi && make gen-client`.
+
 ## Deployment
 
 Each frontend app builds to static assets (`apps/<app>/dist`) deployable to any
@@ -189,3 +248,4 @@ container or VM. Run migrations as a discrete CI/CD step (`atlas migrate apply` 
 - `references/setup.md` — prerequisites, install, the complete environment-variable / feature-toggle matrix, DB setup, verification
 - `references/packages.md` — every app and package, key files, and how they fit together
 - `references/customization.md` — swapping providers, adding a domain to the backend, adding a route/feature to the frontend
+- `references/good-practices.md` — Uber Go Style Guide rules applied to this codebase (errors, interfaces, init(), goroutines, testing, linting)

@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -23,6 +24,7 @@ import (
 	"github.com/starterpack/api/internal/config"
 	userdomain "github.com/starterpack/api/internal/domain/user"
 	"github.com/starterpack/api/internal/platform/logger"
+	"github.com/starterpack/api/internal/platform/validator"
 )
 
 // @title                      Starterpack API
@@ -33,6 +35,13 @@ import (
 // @in                         header
 // @name                       Authorization
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	_ = godotenv.Load(".env.local", ".env")
 
 	cfg := config.Load()
@@ -48,12 +57,14 @@ func main() {
 	logFeature(log, "Sentry", cfg.Sentry.Enabled())
 	logFeature(log, "Resend", cfg.Resend.Enabled())
 
+	v := validator.New()
+
 	// Select the persistence adapter behind the domain Repository port.
 	var userRepo userdomain.Repository
 	if cfg.HasDatabase() {
 		pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
 		if err != nil {
-			log.Fatal().Err(err).Msg("failed to connect to database")
+			return fmt.Errorf("database: %w", err)
 		}
 		defer pool.Close()
 		userRepo = postgres.NewUserRepository(pool)
@@ -63,7 +74,7 @@ func main() {
 		log.Warn().Msg("persistence: in-memory (set DATABASE_URL to use PostgreSQL)")
 	}
 
-	userService := userapp.NewService(userRepo)
+	userService := userapp.NewService(userRepo, v)
 	router := httpadapter.NewRouter(httpadapter.ServerDeps{
 		Config:      cfg,
 		Logger:      log,
@@ -76,24 +87,30 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
+	serverErr := make(chan error, 1)
 	go func() {
 		log.Info().Str("addr", srv.Addr).Str("env", cfg.Env).Msg("API listening")
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatal().Err(err).Msg("server error")
-		}
+		serverErr <- srv.ListenAndServe()
 	}()
 
-	// Graceful shutdown on SIGINT/SIGTERM.
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Info().Msg("shutting down…")
+
+	select {
+	case err := <-serverErr:
+		if !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("server: %w", err)
+		}
+	case <-quit:
+		log.Info().Msg("shutting down…")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("forced shutdown")
+		return fmt.Errorf("shutdown: %w", err)
 	}
+	return nil
 }
 
 func logFeature(log zerolog.Logger, name string, enabled bool) {

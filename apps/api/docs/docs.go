@@ -162,18 +162,12 @@ const docTemplate = `{
         },
         "http.createUserRequest": {
             "type": "object",
-            "required": [
-                "email",
-                "username"
-            ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
                 "username": {
-                    "type": "string",
-                    "maxLength": 6,
-                    "minLength": 2
+                    "type": "string"
                 }
             }
         },
