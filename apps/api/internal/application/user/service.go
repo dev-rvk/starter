@@ -7,18 +7,32 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	userdomain "github.com/starterpack/api/internal/domain/user"
 	"github.com/starterpack/api/internal/platform/validator"
 )
 
+// UserService is the inbound port consumed by the HTTP adapter.
+// Defining it here keeps the interface co-located with its implementation and
+// lets the HTTP layer depend on the abstraction, not the concrete type.
+type UserService interface {
+	Create(ctx context.Context, in CreateInput) (*userdomain.User, error)
+	Get(ctx context.Context, id string) (*userdomain.User, error)
+	List(ctx context.Context, limit, offset int32) ([]*userdomain.User, error)
+}
+
+// Compile-time check: Service must satisfy UserService.
+var _ UserService = (*Service)(nil)
+
 // Service implements the user use cases.
 type Service struct {
 	repo userdomain.Repository
+	v    *validator.Validator
 }
 
-// NewService wires a use-case service to a repository port.
-func NewService(repo userdomain.Repository) *Service {
-	return &Service{repo: repo}
+// NewService wires a use-case service to a repository port and a validator.
+func NewService(repo userdomain.Repository, v *validator.Validator) *Service {
+	return &Service{repo: repo, v: v}
 }
 
 // CreateInput is the raw (unvalidated) input for creating a user.
@@ -27,10 +41,10 @@ type CreateInput struct {
 	Email    string
 }
 
-// Create validates input using ValidateAndMap, then persists the user.
+// Create validates input, then persists the user.
 func (s *Service) Create(ctx context.Context, in CreateInput) (*userdomain.User, error) {
 	u := userdomain.New(uuid.NewString(), in.Username, in.Email, time.Now().UTC())
-	if err := validator.ValidateAndMap("user", u); err != nil {
+	if err := s.v.ValidateAndMap("user", u); err != nil {
 		return nil, err
 	}
 	if err := s.repo.Create(ctx, u); err != nil {

@@ -14,6 +14,7 @@ absent.
 | [Bun](https://bun.sh) | ≥ 1.3 | Package manager + JS runtime |
 | [Go](https://go.dev/dl/) | ≥ 1.24 | Backend (`go` must be on `PATH`) |
 | [Docker](https://docs.docker.com/get-docker/) | any | Easiest way to run PostgreSQL locally (optional) |
+| [golangci-lint](https://golangci-lint.run/usage/install/) | ≥ 1.57 | Go linter (required for `make lint-go`) |
 | GNU Make | any | Orchestrates every command |
 
 Verify:
@@ -21,6 +22,7 @@ Verify:
 ```bash
 bun --version
 go version
+golangci-lint version
 make --version
 ```
 
@@ -39,7 +41,7 @@ make setup
 This runs, in order:
 - `bun install` — all JS workspace dependencies
 - `go mod download` — Go dependencies (in `apps/api`)
-- `make tools` — installs the Go CLIs **sqlc**, **swag** (into your
+- `make tools` — installs the Go CLIs **sqlc**, **swag**, **goimports** (into your
   `GOBIN`; ensure it is on `PATH`, e.g. `export PATH="$(go env GOPATH)/bin:$PATH"`)
 - `make generate` — runs sqlc (DB types), swag (OpenAPI spec), and the typed TS
   API client generator
@@ -94,11 +96,14 @@ the table in [docs.md](./docs.md#local-dependencies--docker).
 make db-apply
 ```
 
-This applies the pre-generated database migrations via Atlas. 
-If you modify [schema.sql](file:///Users/dev-rvk/Downloads/starterpack/starterpack/apps/api/db/schema.sql) in development, you can generate the corresponding SQL migrations by running:
+This applies the pre-generated database migrations via Atlas.
+If you modify `apps/api/db/schema.sql` in development, generate the corresponding
+SQL migrations by running:
+
 ```bash
 make db-diff name=migration_name
 ```
+
 Then apply them using `make db-apply` and run `make sqlc` to sync your Go client.
 
 ## 6. Start everything
@@ -136,7 +141,8 @@ Clerk configured, you'll be redirected to `/sign-in`.
 ```bash
 make help          # list all targets
 make build         # build all JS apps + the Go binary
-make lint          # check JS (ultracite) and vet Go
+make lint          # check JS (ultracite) + go vet
+make lint-go       # golangci-lint on the Go backend (apps/api/.golangci.yml)
 make lint-fix      # auto-fix JS/TS formatting and linting
 make test          # JS + Go tests
 make db-diff name=create_widgets # generate an Atlas migration from schema
@@ -144,3 +150,19 @@ make db-apply      # apply pending migrations
 make db-status     # check migration status
 make generate      # re-run sqlc + openapi + client codegen
 ```
+
+## Go style guide
+
+The Go backend follows the **Uber Go Style Guide**. The rules applied to this
+codebase are in `.agents/skills/starterpack/references/good-practices.md`. Key mandates:
+
+- No `init()` in application code — use `New()` constructors and dependency
+  injection instead.
+- All startup logic lives in `run() error`; `main()` has a single `os.Exit`.
+- Every port implementation carries `var _ Interface = (*Impl)(nil)` for
+  compile-time checking.
+- Handlers depend on `XService` **interfaces**, not `*Service` concrete types.
+- Errors use the structured `domain.Error` type with `Kind` for HTTP mapping.
+- Imports are in three groups: stdlib / external / internal.
+
+Run `make lint-go` before every PR to enforce these rules automatically.
