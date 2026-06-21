@@ -123,6 +123,7 @@ web_modules/
 
 # Optional stylelint cache
 .stylelintcache
+biome-errors.json
 
 # Microbundle cache
 .rpt2_cache/

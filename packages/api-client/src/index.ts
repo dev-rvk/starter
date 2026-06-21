@@ -10,12 +10,12 @@ import type { paths } from "./schema";
 
 export type { paths } from "./schema";
 
-export type CreateApiClientOptions = {
+export interface CreateApiClientOptions {
   /** Base URL of the API, e.g. http://localhost:3002 */
   baseUrl: string;
   /** Optional async getter for a bearer token (e.g. Clerk session token). */
   getToken?: () => Promise<string | null | undefined>;
-};
+}
 
 /** createApiClient builds a typed client, injecting an auth token when provided. */
 export function createApiClient({ baseUrl, getToken }: CreateApiClientOptions) {

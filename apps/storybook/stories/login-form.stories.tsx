@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { LoginForm } from "@repo/design-system/components/auth/login-form";
+import type { Meta, StoryObj } from "@storybook/react";
 
 const meta: Meta<typeof LoginForm> = {
   title: "Auth/LoginForm",
@@ -10,7 +10,7 @@ const meta: Meta<typeof LoginForm> = {
   args: {
     onSubmit: async (values) => {
       console.log("Submit:", values);
-      return new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     },
     onForgotPassword: () => console.log("Forgot password clicked"),
     onSignUp: () => console.log("Sign up clicked"),

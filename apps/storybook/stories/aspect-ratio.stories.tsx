@@ -11,10 +11,13 @@ const meta: Meta<typeof AspectRatio> = {
   argTypes: {},
   render: (args) => (
     <AspectRatio {...args} className="bg-slate-50 dark:bg-slate-800">
+      {/* biome-ignore lint/performance/noImgElement: Storybook example */}
       <img
-        alt="Photo by Alvaro Pinot"
+        alt="Alvaro Pinot"
         className="h-full w-full rounded-md object-cover"
+        height={533}
         src="https://images.unsplash.com/photo-1576075796033-848c2a5f3696?w=800&dpr=2&q=80"
+        width={800}
       />
     </AspectRatio>
   ),

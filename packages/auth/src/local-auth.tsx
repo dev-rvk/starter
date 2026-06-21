@@ -213,7 +213,7 @@ export function LocalAuthProvider({
   }, []);
 
   const getToken = useCallback(async () => {
-    return state.token;
+    return await Promise.resolve(state.token);
   }, [state.token]);
 
   const value = useMemo<LocalAuthContextValue>(

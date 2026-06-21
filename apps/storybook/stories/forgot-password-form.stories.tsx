@@ -1,5 +1,5 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { ForgotPasswordForm } from "@repo/design-system/components/auth/forgot-password-form";
+import type { Meta, StoryObj } from "@storybook/react";
 
 const meta: Meta<typeof ForgotPasswordForm> = {
   title: "Auth/ForgotPasswordForm",
@@ -10,7 +10,7 @@ const meta: Meta<typeof ForgotPasswordForm> = {
   args: {
     onSubmit: async (values) => {
       console.log("Submit:", values);
-      return new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     },
     onBackToSignIn: () => console.log("Back to sign in clicked"),
   },
