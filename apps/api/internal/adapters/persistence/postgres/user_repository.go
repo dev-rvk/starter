@@ -50,7 +50,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*userdomain.Us
 		}
 		return nil, err
 	}
-	return toDomain(row), nil
+	return toUserDomain(row), nil
 }
 
 func (r *UserRepository) List(ctx context.Context, limit, offset int32) ([]*userdomain.User, error) {
@@ -60,12 +60,12 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int32) ([]*user
 	}
 	out := make([]*userdomain.User, 0, len(rows))
 	for _, row := range rows {
-		out = append(out, toDomain(row))
+		out = append(out, toUserDomain(row))
 	}
 	return out, nil
 }
 
-func toDomain(row sqlc.User) *userdomain.User {
+func toUserDomain(row sqlc.User) *userdomain.User {
 	return &userdomain.User{
 		ID:        row.ID,
 		Username:  row.Username,

@@ -20,8 +20,10 @@ import (
 	httpadapter "github.com/starterpack/api/internal/adapters/http"
 	"github.com/starterpack/api/internal/adapters/persistence/memory"
 	"github.com/starterpack/api/internal/adapters/persistence/postgres"
+	todoapp "github.com/starterpack/api/internal/application/todo"
 	userapp "github.com/starterpack/api/internal/application/user"
 	"github.com/starterpack/api/internal/config"
+	"github.com/starterpack/api/internal/domain/todo"
 	userdomain "github.com/starterpack/api/internal/domain/user"
 	"github.com/starterpack/api/internal/platform/logger"
 	"github.com/starterpack/api/internal/platform/validator"
@@ -61,6 +63,7 @@ func run() error {
 
 	// Select the persistence adapter behind the domain Repository port.
 	var userRepo userdomain.Repository
+	var todoRepo todo.Repository
 	if cfg.HasDatabase() {
 		pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
 		if err != nil {
@@ -68,17 +71,21 @@ func run() error {
 		}
 		defer pool.Close()
 		userRepo = postgres.NewUserRepository(pool)
+		todoRepo = postgres.NewTodoRepository(pool)
 		log.Info().Msg("persistence: PostgreSQL (pgx + sqlc)")
 	} else {
 		userRepo = memory.NewUserRepository()
+		todoRepo = memory.NewTodoRepository()
 		log.Warn().Msg("persistence: in-memory (set DATABASE_URL to use PostgreSQL)")
 	}
 
 	userService := userapp.NewService(userRepo, v)
+	todoService := todoapp.NewService(todoRepo, v)
 	router := httpadapter.NewRouter(httpadapter.ServerDeps{
 		Config:      cfg,
 		Logger:      log,
 		UserHandler: httpadapter.NewUserHandler(userService),
+		TodoHandler: httpadapter.NewTodoHandler(todoService),
 	})
 
 	srv := &http.Server{

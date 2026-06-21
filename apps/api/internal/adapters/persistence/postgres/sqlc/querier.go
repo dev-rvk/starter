@@ -13,7 +13,9 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteTodo(ctx context.Context, id string) error
 	GetAllTodos(ctx context.Context) ([]Todo, error)
+	GetTodoByID(ctx context.Context, id string) (Todo, error)
 	GetUserByID(ctx context.Context, id string) (User, error)
+	ListTodos(ctx context.Context, arg ListTodosParams) ([]Todo, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	UpdateTodo(ctx context.Context, arg UpdateTodoParams) (Todo, error)
 }

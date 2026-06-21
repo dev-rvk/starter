@@ -86,6 +86,60 @@ func (q *Queries) GetAllTodos(ctx context.Context) ([]Todo, error) {
 	return items, nil
 }
 
+const getTodoByID = `-- name: GetTodoByID :one
+SELECT created_at, updated_at, id, title, completed FROM todo WHERE id = $1
+`
+
+func (q *Queries) GetTodoByID(ctx context.Context, id string) (Todo, error) {
+	row := q.db.QueryRow(ctx, getTodoByID, id)
+	var i Todo
+	err := row.Scan(
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ID,
+		&i.Title,
+		&i.Completed,
+	)
+	return i, err
+}
+
+const listTodos = `-- name: ListTodos :many
+SELECT created_at, updated_at, id, title, completed FROM todo
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListTodosParams struct {
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) ListTodos(ctx context.Context, arg ListTodosParams) ([]Todo, error) {
+	rows, err := q.db.Query(ctx, listTodos, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Todo{}
+	for rows.Next() {
+		var i Todo
+		if err := rows.Scan(
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ID,
+			&i.Title,
+			&i.Completed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateTodo = `-- name: UpdateTodo :one
 UPDATE todo
 SET title = $2, completed = $3, updated_at = $4

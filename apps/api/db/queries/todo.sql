@@ -16,3 +16,11 @@ WHERE id = $1;
 -- name: GetAllTodos :many
 SELECT * FROM todo
 ORDER BY created_at DESC;
+
+-- name: GetTodoByID :one 
+SELECT * FROM todo WHERE id = $1;
+
+-- name: ListTodos :many
+SELECT * FROM todo
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2;

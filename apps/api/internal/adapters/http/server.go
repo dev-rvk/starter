@@ -19,6 +19,7 @@ type ServerDeps struct {
 	Config      config.Config
 	Logger      zerolog.Logger
 	UserHandler *UserHandler
+	TodoHandler *TodoHandler
 }
 
 // NewRouter builds the Gin engine with middleware and routes.
@@ -48,8 +49,8 @@ func NewRouter(deps ServerDeps) *gin.Engine {
 		deps.Logger.Warn().
 			Msg("Clerk disabled (CLERK_SECRET_KEY unset): /api/v1 routes are UNPROTECTED")
 	}
-
 	deps.UserHandler.register(api)
+	deps.TodoHandler.register(api)
 
 	return r
 }
