@@ -1,8 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Button } from "@repo/design-system/components/ui/button";
 import {
   Card,
@@ -21,6 +19,8 @@ import {
   FormMessage,
 } from "@repo/design-system/components/ui/form";
 import { Input } from "@repo/design-system/components/ui/input";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 export const loginSchema = z.object({
   email: z.string().email("Enter a valid email address."),
@@ -29,13 +29,13 @@ export const loginSchema = z.object({
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
-export type LoginFormProps = {
-  onSubmit: (values: LoginFormValues) => void | Promise<void>;
-  isLoading?: boolean;
+export interface LoginFormProps {
   error?: string | null;
+  isLoading?: boolean;
   onForgotPassword?: () => void;
   onSignUp?: () => void;
-};
+  onSubmit: (values: LoginFormValues) => void | Promise<void>;
+}
 
 export function LoginForm({
   onSubmit,
@@ -56,7 +56,7 @@ export function LoginForm({
         <CardDescription>Sign in to your account to continue.</CardDescription>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="grid gap-4">
             <FormField
               control={form.control}
@@ -104,13 +104,16 @@ export function LoginForm({
                 </FormItem>
               )}
             />
-            {error ? (
-              <p className="text-destructive text-sm" role="alert">
-                {error}
-              </p>
-            ) : null}
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
+            {error ? (
+              <div
+                className="w-full rounded-md bg-destructive/15 p-3 text-center font-medium text-destructive text-sm"
+                role="alert"
+              >
+                {error}
+              </div>
+            ) : null}
             <Button className="w-full" disabled={isLoading} type="submit">
               {isLoading ? "Signing in…" : "Sign in"}
             </Button>

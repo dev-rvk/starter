@@ -1,8 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Button } from "@repo/design-system/components/ui/button";
 import {
   Card,
@@ -21,6 +19,8 @@ import {
   FormMessage,
 } from "@repo/design-system/components/ui/form";
 import { Input } from "@repo/design-system/components/ui/input";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 export const forgotPasswordSchema = z.object({
   email: z.string().email("Enter a valid email address."),
@@ -28,13 +28,13 @@ export const forgotPasswordSchema = z.object({
 
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
-export type ForgotPasswordFormProps = {
-  onSubmit: (values: ForgotPasswordFormValues) => void | Promise<void>;
-  isLoading?: boolean;
+export interface ForgotPasswordFormProps {
   error?: string | null;
-  success?: boolean;
+  isLoading?: boolean;
   onBackToSignIn?: () => void;
-};
+  onSubmit: (values: ForgotPasswordFormValues) => void | Promise<void>;
+  success?: boolean;
+}
 
 export function ForgotPasswordForm({
   onSubmit,
@@ -57,12 +57,12 @@ export function ForgotPasswordForm({
         </CardDescription>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="grid gap-4">
             {success ? (
-              <p className="text-sm" role="status">
+              <output className="text-sm">
                 If an account exists for that email, a reset link is on its way.
-              </p>
+              </output>
             ) : (
               <FormField
                 control={form.control}
@@ -83,13 +83,16 @@ export function ForgotPasswordForm({
                 )}
               />
             )}
-            {error ? (
-              <p className="text-destructive text-sm" role="alert">
-                {error}
-              </p>
-            ) : null}
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
+            {error ? (
+              <div
+                className="w-full rounded-md bg-destructive/15 p-3 text-center font-medium text-destructive text-sm"
+                role="alert"
+              >
+                {error}
+              </div>
+            ) : null}
             {!success && (
               <Button className="w-full" disabled={isLoading} type="submit">
                 {isLoading ? "Sending…" : "Send reset link"}

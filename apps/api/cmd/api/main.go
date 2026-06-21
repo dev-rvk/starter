@@ -20,11 +20,14 @@ import (
 	httpadapter "github.com/starterpack/api/internal/adapters/http"
 	"github.com/starterpack/api/internal/adapters/persistence/memory"
 	"github.com/starterpack/api/internal/adapters/persistence/postgres"
+	authapp "github.com/starterpack/api/internal/application/auth"
 	todoapp "github.com/starterpack/api/internal/application/todo"
 	userapp "github.com/starterpack/api/internal/application/user"
 	"github.com/starterpack/api/internal/config"
+	accountdomain "github.com/starterpack/api/internal/domain/account"
 	"github.com/starterpack/api/internal/domain/todo"
 	userdomain "github.com/starterpack/api/internal/domain/user"
+	"github.com/starterpack/api/internal/platform/jwtutil"
 	"github.com/starterpack/api/internal/platform/logger"
 	"github.com/starterpack/api/internal/platform/validator"
 )
@@ -53,7 +56,7 @@ func run() error {
 		clerk.SetKey(cfg.Clerk.SecretKey)
 		log.Info().Msg("feature: Clerk auth ENABLED")
 	} else {
-		log.Warn().Msg("feature: Clerk auth DISABLED (set CLERK_SECRET_KEY)")
+		log.Info().Msg("feature: Clerk auth disabled — local auth will be used")
 	}
 	logFeature(log, "Stripe", cfg.Stripe.Enabled())
 	logFeature(log, "Sentry", cfg.Sentry.Enabled())
@@ -64,6 +67,7 @@ func run() error {
 	// Select the persistence adapter behind the domain Repository port.
 	var userRepo userdomain.Repository
 	var todoRepo todo.Repository
+	var accountRepo accountdomain.Repository
 	if cfg.HasDatabase() {
 		pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
 		if err != nil {
@@ -72,21 +76,35 @@ func run() error {
 		defer pool.Close()
 		userRepo = postgres.NewUserRepository(pool)
 		todoRepo = postgres.NewTodoRepository(pool)
+		accountRepo = postgres.NewAccountRepository(pool)
 		log.Info().Msg("persistence: PostgreSQL (pgx + sqlc)")
 	} else {
 		userRepo = memory.NewUserRepository()
 		todoRepo = memory.NewTodoRepository()
+		accountRepo = memory.NewAccountRepository()
 		log.Warn().Msg("persistence: in-memory (set DATABASE_URL to use PostgreSQL)")
 	}
 
 	userService := userapp.NewService(userRepo, v)
 	todoService := todoapp.NewService(todoRepo, v)
-	router := httpadapter.NewRouter(httpadapter.ServerDeps{
+
+	// Build the router dependencies.
+	deps := httpadapter.ServerDeps{
 		Config:      cfg,
 		Logger:      log,
 		UserHandler: httpadapter.NewUserHandler(userService),
 		TodoHandler: httpadapter.NewTodoHandler(todoService),
-	})
+	}
+
+	// Wire local auth when Clerk is not configured.
+	if !cfg.Clerk.Enabled() {
+		jwtMgr := jwtutil.New(cfg.JWTSecret, 24*time.Hour)
+		authService := authapp.NewService(accountRepo, userRepo, jwtMgr, v)
+		deps.AuthHandler = httpadapter.NewAuthHandler(authService)
+		deps.JWTManager = jwtMgr
+	}
+
+	router := httpadapter.NewRouter(deps)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

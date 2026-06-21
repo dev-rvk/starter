@@ -1,4 +1,4 @@
-import { isAuthEnabled, useAuth } from "@repo/auth";
+import { isClerkEnabled, useAuth, useLocalAuth } from "@repo/auth";
 import { Button } from "@repo/design-system/components/ui/button";
 import {
   Card,
@@ -16,15 +16,29 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
-  // When Clerk is configured, gate the dashboard behind authentication.
-  if (isAuthEnabled()) {
-    return <GuardedDashboard />;
+  // Auth is always enabled (Clerk or local). Gate the dashboard behind
+  // the appropriate auth check.
+  if (isClerkEnabled()) {
+    return <ClerkGuardedDashboard />;
+  }
+  return <LocalGuardedDashboard />;
+}
+
+/** Clerk auth guard — uses Clerk's useAuth hook. */
+function ClerkGuardedDashboard() {
+  const { isLoaded, isSignedIn } = useAuth();
+  if (!isLoaded) {
+    return <CenteredMessage>Loading…</CenteredMessage>;
+  }
+  if (!isSignedIn) {
+    return <Navigate to="/sign-in" />;
   }
   return <Dashboard />;
 }
 
-function GuardedDashboard() {
-  const { isLoaded, isSignedIn } = useAuth();
+/** Local auth guard — uses the local auth context. */
+function LocalGuardedDashboard() {
+  const { isLoaded, isSignedIn } = useLocalAuth();
   if (!isLoaded) {
     return <CenteredMessage>Loading…</CenteredMessage>;
   }

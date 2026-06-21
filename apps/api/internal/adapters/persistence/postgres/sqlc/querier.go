@@ -9,9 +9,11 @@ import (
 )
 
 type Querier interface {
+	CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error)
 	CreateTodo(ctx context.Context, arg CreateTodoParams) (Todo, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteTodo(ctx context.Context, id string) error
+	GetAccountByEmail(ctx context.Context, email string) (Account, error)
 	GetAllTodos(ctx context.Context) ([]Todo, error)
 	GetTodoByID(ctx context.Context, id string) (Todo, error)
 	GetUserByID(ctx context.Context, id string) (User, error)

@@ -180,8 +180,9 @@ Key behaviours:
   the flat `internal/adapters/http/` package.
 
 - **Feature toggles:** `internal/config` reads env; each optional service has an
-  `Enabled()`; Clerk middleware is mounted only when keyed; without
-  `DATABASE_URL` the API uses the in-memory repository so it always boots.
+  `Enabled()`. Clerk middleware is mounted when keyed; otherwise local JWT auth
+  is wired as the default. Without `DATABASE_URL` the API uses the in-memory
+  repository so it always boots.
 
 ## Phase 3 — Frontend apps (Vite + TanStack Router)
 
@@ -240,7 +241,8 @@ inert and the app still runs.
 
 | Service | Status | Enable by setting | Where |
 |---------|--------|-------------------|-------|
-| **Clerk** (auth) | needed | `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` | api + app |
+| **Clerk** (auth) | optional | `CLERK_SECRET_KEY`, `VITE_CLERK_PUBLISHABLE_KEY` | api + app |
+| **Local Auth** | default | `JWT_SECRET` (falls back to dev secret) | api + app |
 | **PostgreSQL** | needed | `DATABASE_URL` (else in-memory) | api |
 | **Stripe** | later | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | api |
 | **Google Analytics** | free tier | `VITE_GA_MEASUREMENT_ID` | app/web |

@@ -50,8 +50,7 @@ func (h *UserHandler) create(c *gin.Context) {
 		Email:    req.Email,
 	})
 	if err != nil {
-		status, msg := mapDomainError(err)
-		respondError(c, status, msg)
+		handleDomainError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, toUserResponse(u))
@@ -69,8 +68,7 @@ func (h *UserHandler) create(c *gin.Context) {
 func (h *UserHandler) get(c *gin.Context) {
 	u, err := h.svc.Get(c.Request.Context(), c.Param("id"))
 	if err != nil {
-		status, msg := mapDomainError(err)
-		respondError(c, status, msg)
+		handleDomainError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, toUserResponse(u))
@@ -90,8 +88,7 @@ func (h *UserHandler) list(c *gin.Context) {
 	offset := parseInt32(c.Query("offset"), 0)
 	users, err := h.svc.List(c.Request.Context(), limit, offset)
 	if err != nil {
-		status, msg := mapDomainError(err)
-		respondError(c, status, msg)
+		handleDomainError(c, err)
 		return
 	}
 	out := make([]userResponse, 0, len(users))

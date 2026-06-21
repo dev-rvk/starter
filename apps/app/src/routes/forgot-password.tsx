@@ -1,8 +1,8 @@
-import { isAuthEnabled, useSignIn } from "@repo/auth";
+import { isClerkEnabled, useSignIn } from "@repo/auth";
 import { ForgotPasswordForm } from "@repo/design-system/components/auth/forgot-password-form";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { AuthDisabledNotice, AuthScreen } from "../components/auth-screen";
+import { AuthScreen } from "../components/auth-screen";
 import { extractClerkError } from "../lib/clerk-error";
 
 export const Route = createFileRoute("/forgot-password")({
@@ -10,13 +10,14 @@ export const Route = createFileRoute("/forgot-password")({
 });
 
 function ForgotPasswordRoute() {
-  if (!isAuthEnabled()) {
-    return <AuthDisabledNotice />;
+  if (isClerkEnabled()) {
+    return <ClerkForgotPasswordScreen />;
   }
-  return <ForgotPasswordScreen />;
+  return <LocalForgotPasswordNotice />;
 }
 
-function ForgotPasswordScreen() {
+/** Clerk-powered forgot password (existing behaviour). */
+function ClerkForgotPasswordScreen() {
   const { signIn, isLoaded } = useSignIn();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,6 @@ function ForgotPasswordScreen() {
         error={error}
         isLoading={loading}
         onBackToSignIn={() => navigate({ to: "/sign-in" })}
-        success={success}
         onSubmit={async ({ email }) => {
           if (!isLoaded) {
             return;
@@ -48,7 +48,31 @@ function ForgotPasswordScreen() {
             setLoading(false);
           }
         }}
+        success={success}
       />
+    </AuthScreen>
+  );
+}
+
+/**
+ * LocalForgotPasswordNotice is shown when local auth is active — password
+ * reset requires email infrastructure (Clerk/Resend) which isn't available
+ * in local auth mode.
+ */
+function LocalForgotPasswordNotice() {
+  return (
+    <AuthScreen>
+      <div className="max-w-sm space-y-3 text-center">
+        <h1 className="font-semibold text-xl">Password reset unavailable</h1>
+        <p className="text-muted-foreground text-sm">
+          Password reset is not available with local authentication. Contact
+          your administrator to reset your password, or enable Clerk for
+          full-featured auth with email-based password reset.
+        </p>
+        <Link className="text-sm underline underline-offset-4" to="/sign-in">
+          Back to sign in
+        </Link>
+      </div>
     </AuthScreen>
   );
 }

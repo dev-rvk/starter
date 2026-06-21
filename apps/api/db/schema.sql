@@ -9,6 +9,14 @@ CREATE TABLE IF NOT EXISTS users (
   email      TEXT NOT NULL UNIQUE
 );
 
+CREATE TABLE IF NOT EXISTS accounts (
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  id            TEXT PRIMARY KEY,
+  email         TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS todo (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),

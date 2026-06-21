@@ -44,7 +44,8 @@ the browser.
 | Service | Status | Variables | File(s) |
 |---------|--------|-----------|---------|
 | **PostgreSQL** | needed (else in-memory) | `DATABASE_URL` | `apps/api/.env.local` |
-| **Clerk** (auth) | needed | `CLERK_SECRET_KEY` · `VITE_CLERK_PUBLISHABLE_KEY` | api · app |
+| **Clerk** (auth) | optional | `CLERK_SECRET_KEY` · `VITE_CLERK_PUBLISHABLE_KEY` | api · app |
+| **Local Auth** | default fallback | `JWT_SECRET` | api · app |
 | **Stripe** | later | `STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` | api |
 | **Sentry** | optional | `SENTRY_DSN` · `VITE_SENTRY_DSN` | api · app |
 | **Resend** (email) | later | `RESEND_TOKEN` · `RESEND_FROM` | api · `packages/email` |
@@ -56,14 +57,17 @@ Removed from the original next-forge (re-add as packages if needed): Arcjet
 
 ### Minimum to boot
 
-Nothing — the API falls back to in-memory and auth is bypassed in dev. For the
-full experience set `DATABASE_URL` and the Clerk keys above.
+### Minimum to boot
+
+Nothing — the API falls back to in-memory and uses local username/password auth
+by default. For the full experience, set `DATABASE_URL` and configure Clerk.
 
 ### Other env vars
 
 `apps/api/.env.local` also accepts `APP_ENV` (development|production), `PORT`
-(default 3002), `LOG_LEVEL`, and `CORS_ORIGINS` (comma-separated; defaults to the
-app/web dev URLs). `apps/app/.env.local` has `VITE_API_URL` (default
+(default 3002), `LOG_LEVEL`, `JWT_SECRET` (for local auth, falls back to dev key),
+and `CORS_ORIGINS` (comma-separated; defaults to the app/web dev URLs).
+`apps/app/.env.local` has `VITE_API_URL` (default `http://localhost:3002`);
 `http://localhost:3002`); `apps/web/.env.local` has `VITE_APP_URL`.
 
 ## Local dependencies (Docker Compose)

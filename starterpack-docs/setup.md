@@ -3,9 +3,9 @@
 This guide takes you from a fresh clone of **starterpack** to a running dev
 environment. The stack is a Turborepo with a **Vite + TanStack Router** frontend
 (two apps), a **Go hexagonal** backend, a **shadcn/ui** design system, and
-feature-toggled integrations. Only **Clerk** (auth) and **PostgreSQL** are needed
-for the full experience — everything else gracefully degrades when its key is
-absent.
+feature-toggled integrations. Only **PostgreSQL** is needed for the full
+experience — everything else gracefully degrades when its key is absent. By
+default, local username/password auth is used; Clerk is optional.
 
 ## 1. Prerequisites
 
@@ -56,14 +56,14 @@ cp apps/app/.env.example   apps/app/.env.local
 cp apps/web/.env.example   apps/web/.env.local
 ```
 
-**Minimum to boot:** nothing — the API falls back to an in-memory store and auth
-is bypassed in dev. **For the full experience**, set:
+**Minimum to boot:** nothing — the API falls back to an in-memory store and uses
+local username/password authentication by default. **For the full experience**, set:
 
 - **PostgreSQL** — in `apps/api/.env.local`:
   ```
   DATABASE_URL=postgres://postgres:postgres@localhost:5433/starterpack?sslmode=disable
   ```
-- **Clerk** — create an app at [clerk.com](https://clerk.com), then:
+- **Clerk** (optional, replaces local auth) — create an app at [clerk.com](https://clerk.com), then:
   - `apps/api/.env.local`: `CLERK_SECRET_KEY=sk_test_...`
   - `apps/app/.env.local`: `VITE_CLERK_PUBLISHABLE_KEY=pk_test_...`
 
@@ -133,8 +133,9 @@ curl -X POST http://localhost:3002/api/v1/users \
 curl http://localhost:3002/api/v1/users
 ```
 
-Open the dashboard at http://localhost:3000 — it lists users from the API. With
-Clerk configured, you'll be redirected to `/sign-in`.
+Open the dashboard at http://localhost:3000 — it lists users from the API.
+You'll be redirected to `/sign-in` (either local auth or Clerk, depending on
+your configuration).
 
 ## Common commands
 

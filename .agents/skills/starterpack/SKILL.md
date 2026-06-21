@@ -26,9 +26,9 @@ make client    # run the JS apps via turbo (interactive TUI)
 make server    # run the Go API backend (clean stdout logs)
 ```
 
-Only **Clerk** (auth) and **PostgreSQL** are needed for the full experience.
-Without `DATABASE_URL` the API uses an in-memory store; without Clerk keys auth is
-bypassed in dev. Run `make help` to see every target.
+Only **PostgreSQL** is needed for the full experience. Without `DATABASE_URL` the API
+uses an in-memory store; without Clerk keys the app defaults to local username/password
+authentication. Run `make help` to see every target.
 
 ## Architecture Overview
 

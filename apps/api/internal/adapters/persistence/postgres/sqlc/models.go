@@ -10,6 +10,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Account struct {
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	ID           string
+	Email        string
+	PasswordHash string
+}
+
 type Todo struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time

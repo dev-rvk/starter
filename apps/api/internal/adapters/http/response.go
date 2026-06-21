@@ -17,6 +17,17 @@ func respondError(c *gin.Context, status int, msg string) {
 	c.JSON(status, ErrorResponse{Error: msg})
 }
 
+// handleDomainError translates a domain error into an HTTP response. If it's
+// an internal server error (500), it attaches the raw error to the Gin context
+// so the logger middleware can record the underlying cause.
+func handleDomainError(c *gin.Context, err error) {
+	status, msg := mapDomainError(err)
+	if status >= 500 {
+		_ = c.Error(err)
+	}
+	c.JSON(status, ErrorResponse{Error: msg})
+}
+
 // mapDomainError translates domain errors into HTTP statuses. It prefers the
 // structured domain.Error type (via errors.As) and falls back to sentinel
 // errors.Is checks for backward compatibility.

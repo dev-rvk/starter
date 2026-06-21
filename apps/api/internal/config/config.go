@@ -15,6 +15,7 @@ type Config struct {
 	LogLevel    string
 	LogPretty   bool
 	DatabaseURL string
+	JWTSecret   string // HMAC secret for local auth JWTs
 	CORSOrigins []string
 
 	Clerk  ClerkConfig
@@ -64,6 +65,7 @@ func Load() Config {
 		Port:        getenv("PORT", "3002"),
 		LogLevel:    getenv("LOG_LEVEL", "info"),
 		DatabaseURL: os.Getenv("DATABASE_URL"),
+		JWTSecret:   getenv("JWT_SECRET", "starterpack-dev-secret-change-in-production"),
 		CORSOrigins: splitCSV(getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")),
 		Clerk:       ClerkConfig{SecretKey: os.Getenv("CLERK_SECRET_KEY")},
 		Stripe: StripeConfig{

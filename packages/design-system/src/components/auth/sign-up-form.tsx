@@ -1,8 +1,6 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { Button } from "@repo/design-system/components/ui/button";
 import {
   Card,
@@ -22,6 +20,8 @@ import {
   FormMessage,
 } from "@repo/design-system/components/ui/form";
 import { Input } from "@repo/design-system/components/ui/input";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
 /**
  * Field rules mirror the backend domain constraints (see apps/api domain
@@ -39,12 +39,12 @@ export const signUpSchema = z.object({
 
 export type SignUpFormValues = z.infer<typeof signUpSchema>;
 
-export type SignUpFormProps = {
-  onSubmit: (values: SignUpFormValues) => void | Promise<void>;
-  isLoading?: boolean;
+export interface SignUpFormProps {
   error?: string | null;
+  isLoading?: boolean;
   onSignIn?: () => void;
-};
+  onSubmit: (values: SignUpFormValues) => void | Promise<void>;
+}
 
 export function SignUpForm({
   onSubmit,
@@ -64,7 +64,7 @@ export function SignUpForm({
         <CardDescription>Start your free account in seconds.</CardDescription>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="grid gap-4">
             <FormField
               control={form.control}
@@ -119,13 +119,16 @@ export function SignUpForm({
                 </FormItem>
               )}
             />
-            {error ? (
-              <p className="text-destructive text-sm" role="alert">
-                {error}
-              </p>
-            ) : null}
           </CardContent>
           <CardFooter className="flex flex-col gap-3">
+            {error ? (
+              <div
+                className="w-full rounded-md bg-destructive/15 p-3 text-center font-medium text-destructive text-sm"
+                role="alert"
+              >
+                {error}
+              </div>
+            ) : null}
             <Button className="w-full" disabled={isLoading} type="submit">
               {isLoading ? "Creating account…" : "Create account"}
             </Button>

@@ -1,44 +1,48 @@
-import { isAuthEnabled, useAuth } from "@repo/auth";
 import { type ApiClient, createApiClient } from "@repo/api-client";
-import {
-  createContext,
-  type ReactNode,
-  useContext,
-  useMemo,
-} from "react";
+import { isClerkEnabled, useAuth, useLocalAuth } from "@repo/auth";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { apiUrl } from "../features";
 
 const ApiContext = createContext<ApiClient | null>(null);
 
 /** AuthedApiProvider injects the Clerk session token into API requests. */
-function AuthedApiProvider({ children }: { children: ReactNode }) {
+function ClerkApiProvider({ children }: { children: ReactNode }) {
   const { getToken } = useAuth();
   const client = useMemo(
-    () => createApiClient({ baseUrl: `${apiUrl}/api/v1`, getToken: () => getToken() }),
+    () =>
+      createApiClient({
+        baseUrl: `${apiUrl}/api/v1`,
+        getToken: () => getToken(),
+      }),
     [getToken]
   );
   return <ApiContext.Provider value={client}>{children}</ApiContext.Provider>;
 }
 
-/** PlainApiProvider builds a client without auth (used when Clerk is disabled). */
-function PlainApiProvider({ children }: { children: ReactNode }) {
+/** LocalApiProvider injects the local JWT into API requests. */
+function LocalApiProvider({ children }: { children: ReactNode }) {
+  const { getToken } = useLocalAuth();
   const client = useMemo(
-    () => createApiClient({ baseUrl: `${apiUrl}/api/v1` }),
-    []
+    () =>
+      createApiClient({
+        baseUrl: `${apiUrl}/api/v1`,
+        getToken,
+      }),
+    [getToken]
   );
   return <ApiContext.Provider value={client}>{children}</ApiContext.Provider>;
 }
 
 /**
- * ApiProvider picks the right client variant. The choice is based on the
- * env-derived auth toggle, which is constant for the app's lifetime, so the
- * selected provider component is stable across renders.
+ * ApiProvider picks the right client variant. When Clerk is configured, inject
+ * the Clerk session token. Otherwise, inject the local JWT. Both modes produce
+ * a typed API client with bearer auth.
  */
 export function ApiProvider({ children }: { children: ReactNode }) {
-  if (isAuthEnabled()) {
-    return <AuthedApiProvider>{children}</AuthedApiProvider>;
+  if (isClerkEnabled()) {
+    return <ClerkApiProvider>{children}</ClerkApiProvider>;
   }
-  return <PlainApiProvider>{children}</PlainApiProvider>;
+  return <LocalApiProvider>{children}</LocalApiProvider>;
 }
 
 /** useApiClient returns the typed API client from context. */

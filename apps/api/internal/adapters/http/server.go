@@ -12,6 +12,7 @@ import (
 
 	"github.com/starterpack/api/internal/adapters/http/middleware"
 	"github.com/starterpack/api/internal/config"
+	"github.com/starterpack/api/internal/platform/jwtutil"
 )
 
 // ServerDeps are the dependencies needed to build the router.
@@ -20,6 +21,8 @@ type ServerDeps struct {
 	Logger      zerolog.Logger
 	UserHandler *UserHandler
 	TodoHandler *TodoHandler
+	AuthHandler *AuthHandler          // nil when Clerk is enabled (local auth not needed)
+	JWTManager  *jwtutil.JWTManager   // nil when Clerk is enabled
 }
 
 // NewRouter builds the Gin engine with middleware and routes.
@@ -43,12 +46,25 @@ func NewRouter(deps ServerDeps) *gin.Engine {
 	r.GET("/swagger/*any", ginswagger.WrapHandler(swaggerfiles.Handler))
 
 	api := r.Group("/api/v1")
+
 	if deps.Config.Clerk.Enabled() {
+		// Clerk mode: all /api/v1 routes are protected by Clerk JWT.
 		api.Use(middleware.ClerkAuth())
+	} else if deps.AuthHandler != nil {
+		// Local auth mode: mount public auth routes, then protect the rest.
+		deps.AuthHandler.registerPublic(api)
+
+		api.Use(middleware.LocalAuth(deps.JWTManager))
+
+		deps.AuthHandler.registerProtected(api)
+
+		deps.Logger.Info().
+			Msg("auth: local username/password auth ENABLED")
 	} else {
 		deps.Logger.Warn().
 			Msg("Clerk disabled (CLERK_SECRET_KEY unset): /api/v1 routes are UNPROTECTED")
 	}
+
 	deps.UserHandler.register(api)
 	deps.TodoHandler.register(api)
 

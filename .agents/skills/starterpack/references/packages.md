@@ -19,7 +19,7 @@ swag (OpenAPI). **Architecture**: hexagonal (ports & adapters).
   handlers + swag annotations) and `{resource}_dto.go` (pure data shuttles with
   `json:` tags only — no `binding:` tags). `response.go` maps shared domain
   sentinels to HTTP status codes. Middleware: `logger` (zerolog), `cors`, `auth`
-  (Clerk JWT).
+  (Clerk JWT or Local JWT depending on config).
 - `internal/adapters/persistence/{postgres,memory}/` — two implementations of the
   repository port. `postgres` wraps sqlc-generated queries over a pgx pool;
   `memory` is the no-DB fallback.
@@ -29,7 +29,8 @@ swag (OpenAPI). **Architecture**: hexagonal (ports & adapters).
 
 **Endpoints**: `GET /health`, `GET /swagger/*`, and `/api/v1/users`
 (POST/GET/GET:id) as the worked example. Routes under `/api/v1` are protected by
-Clerk middleware when `CLERK_SECRET_KEY` is set.
+Clerk middleware when `CLERK_SECRET_KEY` is set; otherwise, they are protected
+by the local JWT middleware (with `/auth/register` and `/auth/login` exposed).
 
 **DB workflow**: edit `db/schema.sql` directly (desired state), run `make db-diff name=...` (generates migration file), run `make db-apply` (applies to DB), and run `make sqlc` (regenerates typed Go from `db/queries/` against `db/schema.sql`).
 
@@ -72,12 +73,12 @@ map. Add components with `bunx shadcn@latest add <c> -c packages/design-system`
 
 ## `@repo/auth`
 
-**Provider**: Clerk. `AuthProvider` mounts `ClerkProvider` **only** when
-`VITE_CLERK_PUBLISHABLE_KEY` is set (graceful when the toggle is off);
-`isAuthEnabled()` / `useIsAuthEnabled()` report status. Re-exports Clerk hooks
-and components (`useAuth`, `useSignIn`, `useSignUp`, `SignedIn`, `UserButton`, …).
-The design-system auth forms are wired to these headless hooks in the app's auth
-routes.
+**Provider**: Clerk OR Local JWT. `AuthProvider` mounts `ClerkProvider` when
+`VITE_CLERK_PUBLISHABLE_KEY` is set; otherwise it mounts `LocalAuthProvider`.
+Auth is always enabled. Re-exports Clerk hooks alongside local hooks (`useAuth`,
+`useLocalAuth`, `useSignIn`, `SignedIn`, `UserButton`, …). The design-system
+auth forms are wired to these headless hooks in the app's auth routes, adapting
+behaviour based on the active provider.
 
 ## `@repo/api-client`
 
