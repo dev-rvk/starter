@@ -1,4 +1,3 @@
-import { isClerkEnabled, useAuth, useLocalAuth } from "@repo/auth";
 import { Button } from "@repo/design-system/components/ui/button";
 import {
   Card,
@@ -7,7 +6,8 @@ import {
   CardTitle,
 } from "@repo/design-system/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { RequireAuth } from "../components/require-auth";
 import { apiUrl } from "../features";
 import { useApiClient } from "../lib/api";
 
@@ -16,36 +16,11 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
-  // Auth is always enabled (Clerk or local). Gate the dashboard behind
-  // the appropriate auth check.
-  if (isClerkEnabled()) {
-    return <ClerkGuardedDashboard />;
-  }
-  return <LocalGuardedDashboard />;
-}
-
-/** Clerk auth guard — uses Clerk's useAuth hook. */
-function ClerkGuardedDashboard() {
-  const { isLoaded, isSignedIn } = useAuth();
-  if (!isLoaded) {
-    return <CenteredMessage>Loading…</CenteredMessage>;
-  }
-  if (!isSignedIn) {
-    return <Navigate to="/sign-in" />;
-  }
-  return <Dashboard />;
-}
-
-/** Local auth guard — uses the local auth context. */
-function LocalGuardedDashboard() {
-  const { isLoaded, isSignedIn } = useLocalAuth();
-  if (!isLoaded) {
-    return <CenteredMessage>Loading…</CenteredMessage>;
-  }
-  if (!isSignedIn) {
-    return <Navigate to="/sign-in" />;
-  }
-  return <Dashboard />;
+  return (
+    <RequireAuth>
+      <Dashboard />
+    </RequireAuth>
+  );
 }
 
 function Dashboard() {
@@ -95,14 +70,6 @@ function Dashboard() {
           ) : null}
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function CenteredMessage({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-1 items-center justify-center p-6 text-muted-foreground">
-      {children}
     </div>
   );
 }

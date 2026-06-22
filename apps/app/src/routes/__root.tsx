@@ -11,9 +11,18 @@ function RootLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between border-b px-6 py-3">
-        <Link className="font-semibold" to="/">
-          Starterpack
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link className="font-semibold" to="/">
+            Starterpack
+          </Link>
+          <Link
+            activeProps={{ className: "text-foreground" }}
+            className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+            to="/todos"
+          >
+            Todos
+          </Link>
+        </div>
         <div className="flex items-center gap-3">
           <ModeToggle />
           {isClerkEnabled() ? <ClerkUserControls /> : <LocalUserControls />}

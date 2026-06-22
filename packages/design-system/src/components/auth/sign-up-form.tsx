@@ -135,13 +135,14 @@ export function SignUpForm({
             {onSignIn ? (
               <p className="text-center text-muted-foreground text-sm">
                 Already have an account?{" "}
-                <button
-                  className="underline underline-offset-4"
+                <Button
+                  className="h-auto p-0"
                   onClick={onSignIn}
                   type="button"
+                  variant="link"
                 >
                   Sign in
-                </button>
+                </Button>
               </p>
             ) : null}
           </CardFooter>

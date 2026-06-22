@@ -20,7 +20,7 @@ starterpack/
 │   ├── email/             # Resend client + React Email templates
 │   └── typescript-config/ # Shared tsconfig presets
 ├── starterpack-docs/      # setup.md (clone→run) + docs.md (changes/decisions)
-├── skills/                # Project skills (next-forge reference + this one)
+├── .agents/skills/        # Project skills (this one: starterpack)
 ├── docker-compose.yml     # Local backing services (postgres core; redis/mailpit via profiles)
 ├── Makefile               # Single entrypoint (wraps bun/turbo + Go toolchain + compose)
 ├── turbo.json
@@ -67,37 +67,42 @@ apps/api/
 │   │   │   ├── user.go                   #   entity with validate: struct tags
 │   │   │   ├── port.go                   #   Repository interface (the port)
 │   │   │   └── errors.go                 #   domain.NotFound("user") / domain.ValidationError(...)
-│   │   └── todo/                         # (same pattern per resource)
+│   │   ├── todo/                         # (same pattern per resource)
+│   │   └── account/                      # auth credentials (email + password hash), separate from user
 │   ├── application/
 │   │   ├── user/
 │   │   │   └── service.go               # use cases + UserService interface + var _ UserService = (*Service)(nil)
-│   │   └── todo/
-│   │       └── service.go               # use cases + TodoService interface + var _ TodoService = (*Service)(nil)
+│   │   ├── todo/
+│   │   │   └── service.go               # use cases + TodoService interface + var _ TodoService = (*Service)(nil)
+│   │   └── auth/                         # local-auth use cases: orchestrates account + user, issues JWTs (bcrypt)
+│   │       └── service.go               #   var _ AuthService = (*Service)(nil)
 │   ├── adapters/
 │   │   ├── http/                         # flat: {resource}_handler.go, {resource}_dto.go, response.go
 │   │   │   ├── user_handler.go           #   takes UserService interface (not *userapp.Service)
 │   │   │   ├── user_dto.go               #   pure data shuttle (json tags only, no binding tags)
 │   │   │   ├── todo_handler.go           #   (same pattern)
 │   │   │   ├── todo_dto.go
+│   │   │   ├── auth_handler.go           #   /auth/register, /auth/login (public), /auth/me (protected)
+│   │   │   ├── auth_dto.go
 │   │   │   ├── response.go               #   maps domain.Error.Kind → HTTP status; KindUnknown → 500
-│   │   │   └── middleware/               #   logger (zerolog), cors, clerk auth, requestid
+│   │   │   └── middleware/               #   logger.go (zerolog), cors.go, auth.go (Clerk), local_auth.go (local JWT)
 │   │   └── persistence/
 │   │       ├── postgres/                 # pgx pool + sqlc-generated queries
 │   │       │   ├── user_repository.go    #   var _ userdomain.Repository = (*UserRepository)(nil)
 │   │       │   ├── todo_repository.go    #   var _ tododomain.Repository = (*TodoRepository)(nil)
+│   │       │   ├── account_repository.go #   var _ accountdomain.Repository = (*AccountRepository)(nil)
 │   │       │   └── sqlc/                 #   GENERATED — do not edit by hand
-│   │       └── memory/                   # in-memory repo (no-DB fallback)
-│   │           ├── user_repository.go    #   var _ userdomain.Repository = (*UserRepository)(nil)
-│   │           └── todo_repository.go    #   var _ tododomain.Repository = (*TodoRepository)(nil)
+│   │       └── memory/                   # in-memory repos (no-DB fallback): user, todo, account
 │   └── platform/
-│       ├── logger/                       # zerolog setup
+│       ├── logger/                       # zerolog setup (logger.New)
+│       ├── jwtutil/                      # JWTManager: Sign/Verify HMAC tokens for local auth (jwtutil.New)
 │       └── validator/                    # Validator struct with New() constructor (no init(), no global var)
 ├── db/
 │   ├── migrations/                       # Atlas versioned migrations
 │   ├── queries/                          # sqlc input queries
 │   └── schema.sql                        # desired schema state -> sqlc input
 ├── docs/                                 # GENERATED OpenAPI spec (swag)
-├── .golangci.yml                         # linter config (goimports, errcheck, staticcheck, prealloc, …)
+├── atlas.hcl                             # Atlas env config (src = db/schema.sql, dir = db/migrations)
 ├── sqlc.yaml
 └── go.mod
 ```
@@ -132,6 +137,21 @@ result is always observed before shutdown proceeds.
 **File naming convention**: handlers use a flat `internal/adapters/http/` package
 with `{resource}_handler.go` and `{resource}_dto.go` (e.g. `user_handler.go`,
 `user_dto.go`, `todo_handler.go`, `todo_dto.go`).
+
+**Authentication (dual mode)**: auth is always on, selected by config in
+`NewRouter` (`internal/adapters/http/server.go`):
+
+- **Clerk mode** — when `CLERK_SECRET_KEY` is set, all `/api/v1` routes are guarded
+  by `middleware.ClerkAuth()`. No local-auth code is wired (`AuthHandler`/`JWTManager`
+  stay nil).
+- **Local mode** — the default fallback. `cmd/api/main.go` builds a `jwtutil.JWTManager`
+  (24h HMAC tokens) and an `authapp.Service` over the `account` + `user` repos. Public
+  `/api/v1/auth/register` and `/auth/login` are mounted first; then `middleware.LocalAuth`
+  guards the rest (including `/auth/me`). Passwords are bcrypt-hashed; the `account`
+  domain (credentials) is kept separate from the `user` domain (profile), sharing one ID.
+
+If neither Clerk is configured nor an `AuthHandler` is wired, `/api/v1` is left
+**unprotected** and the server logs a warning — fine for a fresh clone, not for prod.
 
 **Module path**: `github.com/starterpack/api`. **Adding a domain**: see
 `references/customization.md` and the checklist in `references/good-practices.md`.
@@ -194,6 +214,10 @@ the Makefile runs it alongside `turbo dev`.
 
 - `apps/api/internal/adapters/persistence/postgres/sqlc/**` (sqlc)
 - `apps/api/docs/**` (swag)
-- `apps/api/db/schema.sql` (desired schema state)
 - `packages/api-client/src/schema.d.ts` (openapi-typescript)
 - `apps/<app>/src/routeTree.gen.ts` (TanStack Router plugin, gitignored)
+
+> `apps/api/db/schema.sql` is **hand-authored** — it is the desired-state input
+> that Atlas diffs to generate migrations and that sqlc reads to generate Go. Edit
+> it directly; do not treat it as generated. The generated migration files land in
+> `apps/api/db/migrations/` (tracked by `atlas.sum`).

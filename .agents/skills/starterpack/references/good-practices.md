@@ -128,11 +128,12 @@ type UserHandler struct {
 **Do not use `init()`** in new code. Move setup into explicit constructors:
 
 ```go
-// Bad — validator/validator.go current state
+// Bad — package global initialised in init()
 var validate *validator.Validate
 func init() { validate = validator.New() }
 
-// Good — use a struct with a New() constructor
+// Good — what internal/platform/validator/validator.go actually does:
+// a struct with a New() constructor, injected from cmd/api/main.go
 type Validator struct { v *validator.Validate }
 func New() *Validator {
     v := validator.New()
@@ -391,27 +392,22 @@ if !ok {
 
 ---
 
-## 13. golangci-lint configuration
+## 13. Linting
 
-The canonical linter config lives at `apps/api/.golangci.yml`. Run it via:
+What actually runs today (from the root `Makefile`):
 
 ```bash
-make lint-go   # runs golangci-lint run ./... inside apps/api/
+make lint       # bun run check (ultracite/Biome on JS/TS) + `go vet ./...` in apps/api
+make lint-fix   # bun run fix  (ultracite auto-fix for JS/TS)
 ```
 
-Required enabled linters:
-- `goimports` — import grouping
-- `govet` — suspicious constructs
-- `errcheck` — unchecked errors
-- `staticcheck` — comprehensive static analysis
-- `revive` — style (replaces golint)
-- `gosimple`, `ineffassign`, `unused` — dead code
-- `misspell` — spelling in comments
-- `prealloc` — slice pre-allocation hints
-- `bodyclose` — HTTP response body close
-- `exhaustive` — switch exhaustiveness on enums
-- `noctx` — HTTP requests without context
-- `gocritic` — additional bug patterns
+There is **no** `golangci-lint` config in the repo today — Go linting is `go vet`
+only. The style rules in this document are enforced by convention and review, not
+by a linter. If you add `golangci-lint`, wire it as a new Makefile target (e.g.
+`lint-go: cd apps/api && golangci-lint run ./...`) and fold it into `lint`. A
+sensible enabled set that maps to the rules above: `goimports`, `govet`,
+`errcheck`, `staticcheck`, `revive`, `ineffassign`, `unused`, `misspell`,
+`prealloc`, `bodyclose`, `exhaustive`, `noctx`, `gocritic`.
 
 ---
 

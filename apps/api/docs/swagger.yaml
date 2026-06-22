@@ -5,6 +5,26 @@ definitions:
       error:
         type: string
     type: object
+  http.authResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/http.authUserResponse'
+    type: object
+  http.authUserResponse:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      updatedAt:
+        type: string
+      username:
+        type: string
+    type: object
   http.createTodoRequest:
     properties:
       title:
@@ -13,6 +33,22 @@ definitions:
   http.createUserRequest:
     properties:
       email:
+        type: string
+      username:
+        type: string
+    type: object
+  http.loginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  http.registerRequest:
+    properties:
+      email:
+        type: string
+      password:
         type: string
       username:
         type: string
@@ -56,6 +92,89 @@ info:
   title: Starterpack API
   version: 0.1.0
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Validates credentials and returns a JWT.
+      parameters:
+      - description: Login credentials
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/http.loginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: Login with email and password
+      tags:
+      - auth
+  /auth/me:
+    get:
+      description: Returns the authenticated user's profile.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.authUserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates an account with email/password and a user profile.
+      parameters:
+      - description: Registration data
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/http.registerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.authResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      summary: Register a new account
+      tags:
+      - auth
   /todos:
     get:
       parameters:

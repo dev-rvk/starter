@@ -99,13 +99,14 @@ export function ForgotPasswordForm({
               </Button>
             )}
             {onBackToSignIn ? (
-              <button
-                className="text-center text-muted-foreground text-sm underline underline-offset-4"
+              <Button
+                className="h-auto p-0 text-muted-foreground text-sm"
                 onClick={onBackToSignIn}
                 type="button"
+                variant="link"
               >
                 Back to sign in
-              </button>
+              </Button>
             ) : null}
           </CardFooter>
         </form>

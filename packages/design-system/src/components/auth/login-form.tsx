@@ -84,13 +84,14 @@ export function LoginForm({
                   <div className="flex items-center justify-between">
                     <FormLabel>Password</FormLabel>
                     {onForgotPassword ? (
-                      <button
-                        className="text-muted-foreground text-sm underline-offset-4 hover:underline"
+                      <Button
+                        className="h-auto p-0 text-muted-foreground text-sm"
                         onClick={onForgotPassword}
                         type="button"
+                        variant="link"
                       >
                         Forgot password?
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
                   <FormControl>
@@ -120,13 +121,14 @@ export function LoginForm({
             {onSignUp ? (
               <p className="text-center text-muted-foreground text-sm">
                 Don&apos;t have an account?{" "}
-                <button
-                  className="underline underline-offset-4"
+                <Button
+                  className="h-auto p-0"
                   onClick={onSignUp}
                   type="button"
+                  variant="link"
                 >
                   Sign up
-                </button>
+                </Button>
               </p>
             ) : null}
           </CardFooter>

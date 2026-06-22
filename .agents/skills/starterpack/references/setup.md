@@ -57,8 +57,6 @@ Removed from the original next-forge (re-add as packages if needed): Arcjet
 
 ### Minimum to boot
 
-### Minimum to boot
-
 Nothing — the API falls back to in-memory and uses local username/password auth
 by default. For the full experience, set `DATABASE_URL` and configure Clerk.
 
@@ -68,7 +66,7 @@ by default. For the full experience, set `DATABASE_URL` and configure Clerk.
 (default 3002), `LOG_LEVEL`, `JWT_SECRET` (for local auth, falls back to dev key),
 and `CORS_ORIGINS` (comma-separated; defaults to the app/web dev URLs).
 `apps/app/.env.local` has `VITE_API_URL` (default `http://localhost:3002`);
-`http://localhost:3002`); `apps/web/.env.local` has `VITE_APP_URL`.
+`apps/web/.env.local` has `VITE_APP_URL`.
 
 ## Local dependencies (Docker Compose)
 
@@ -126,16 +124,28 @@ Run pieces individually with `make client` / `make server` (or their aliases `ma
 
 ## Verify
 
+`/health` is always public. In the default **local-auth** mode every `/api/v1`
+route except `/auth/register` and `/auth/login` is behind a bearer token, so
+register first and reuse the returned JWT:
+
 ```bash
 curl http://localhost:3002/health        # {"status":"ok"}
-curl -X POST http://localhost:3002/api/v1/users \
+
+# Register → returns {"token":"...","user":{...}} (201)
+TOKEN=$(curl -s -X POST http://localhost:3002/api/v1/auth/register \
   -H 'Content-Type: application/json' \
-  -d '{"username":"jdoe","email":"jdoe@example.com"}'   # 201
-curl http://localhost:3002/api/v1/users
+  -d '{"username":"jdoe","email":"jdoe@example.com","password":"hunter2pw"}' \
+  | sed -E 's/.*"token":"([^"]+)".*/\1/')
+
+# Use the token on protected routes
+curl http://localhost:3002/api/v1/auth/me -H "Authorization: Bearer $TOKEN"
+curl http://localhost:3002/api/v1/users   -H "Authorization: Bearer $TOKEN"
 ```
 
-The dashboard at http://localhost:3000 lists those users. Invalid input (e.g. a
-username outside 2–6 chars) returns `422` from the validator.
+The dashboard at http://localhost:3000 lists those users once you're signed in.
+Invalid input (e.g. a username outside 2–6 chars) returns `422` from the
+validator; bad login credentials return `401`. With `CLERK_SECRET_KEY` set
+instead, the `/auth/*` routes are absent and `/api/v1` is guarded by Clerk.
 
 ## Validation model
 

@@ -76,10 +76,12 @@ The Go API isolates business logic from frameworks. Dependencies point inward:
 cmd/api/main.go              composition root (config, logger, wiring, server)
 internal/domain/errors.go    shared structured error type + sentinels
 internal/domain/<x>/         entities (validate: struct tags), Repository port interface
+                             (user, todo, account)
 internal/application/<x>/    use cases + XService interface — depend only on ports
+                             (user, todo, auth)
 internal/adapters/http/      Gin handlers (thin), DTOs (json tags only), middleware
 internal/adapters/persistence/  postgres (pgx + sqlc) and memory repositories
-internal/platform/validator/  Validator struct (New() constructor, no init())
+internal/platform/           logger (zerolog), validator (New()), jwtutil (local-auth JWTs)
 ```
 
 Handlers stay thin (decode → use case → encode) in a flat structure using the
@@ -108,6 +110,24 @@ is the blank import for the Swagger docs registry.
 
 Details and conventions in `references/architecture.md`.
 Full Uber Style Guide rules in `references/good-practices.md`.
+
+### Authentication (dual mode)
+
+Auth is always on; the mode is chosen by config in `NewRouter`
+(`internal/adapters/http/server.go`):
+
+- **Clerk** — set `CLERK_SECRET_KEY` (+ `VITE_CLERK_PUBLISHABLE_KEY` on the
+  frontend). All `/api/v1` routes are guarded by Clerk JWT; no local-auth code is
+  wired.
+- **Local (default fallback)** — bcrypt + HMAC JWTs. `application/auth` orchestrates
+  a credentials `domain/account` (email + password hash) and the profile
+  `domain/user`, signed via `platform/jwtutil`. Public `/api/v1/auth/register` and
+  `/auth/login`; everything else is behind `middleware.LocalAuth`. On the frontend,
+  `@repo/auth` mounts `LocalAuthProvider` instead of `ClerkProvider`.
+
+With neither configured, `/api/v1` is left unprotected and the server logs a
+warning — acceptable for a fresh clone, not for production. See
+`references/architecture.md` (Authentication) and `references/packages.md`.
 
 ### Design system
 
