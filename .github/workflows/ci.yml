@@ -1,8 +1,11 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main, release/prod]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.head_ref }}
