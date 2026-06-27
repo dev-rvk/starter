@@ -1,5 +1,7 @@
 # starterpack: The Go + React SaaS Starter
 
+[![CI](https://github.com/dev-rvk/starter/actions/workflows/ci.yml/badge.svg)](https://github.com/dev-rvk/starter/actions/workflows/ci.yml)
+
 **starterpack** is a production-ready, deployable Turborepo SaaS starter template. It combines a blazing-fast **Vite + TanStack Router (React)** frontend with a robust **Go hexagonal** backend. Featuring a **shadcn/ui** design system and feature-toggled integrations (Clerk, Stripe, analytics, email, error tracking). A powerful re-platform of [next-forge](https://www.next-forge.com) onto Vite + Go.
 
 ## Scaffold with `create-go-starter`

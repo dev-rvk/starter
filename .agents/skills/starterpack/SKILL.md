@@ -203,7 +203,7 @@ bunx shadcn@latest add <component> -c packages/design-system
 ```bash
 make lint         # ultracite (JS) + go vet
 make lint-api-fix # auto-fix Go linting and import formatting (golangci-lint)
-make test         # bun test + go test
+make test         # vitest (JS/TS components) + go test
 make build        # all JS apps (turbo) + the Go binary
 ```
 

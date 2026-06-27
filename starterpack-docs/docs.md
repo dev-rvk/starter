@@ -378,3 +378,13 @@ Full reference: `.agents/skills/starterpack/references/deployment-cloud.md`.
   git integration (see `deployment-cloud.md` section 10).
 - Create Neon staging branch and store connection strings as GitHub secrets.
 - Populate all GitHub secrets (see `deployment-cloud.md` section 8 for the full matrix).
+
+---
+
+## Phase 9 — Vitest Frontend Testing
+
+Added genuine TDD structure to the frontends using **Vitest**:
+- `vitest`, `jsdom`, `@testing-library/react`, and `@testing-library/jest-dom` installed at the root (`package.json`).
+- `packages/design-system` has `vitest.config.ts` and `vitest.setup.ts`. Example component tests cover the `Button` and the `cn` utility logic.
+- `apps/app` has `test` configurations in `vite.config.ts` (with triple-slash reference for typings).
+- `make test-js` / `make test` runs tests smoothly across all Turborepo frontend apps.

@@ -287,6 +287,7 @@ packages/database/generated
 apps/api/bin/
 apps/api/tmp/
 *.test
+coverage.out
 
 # Starterpack: generated OpenAPI intermediate
 packages/api-client/openapi.json

@@ -35,7 +35,14 @@ jobs:
           go-version: "1.26"
       - run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       - run: make lint-api
-      - run: make test-api
+      - name: Run tests with coverage
+        run: |
+          cd apps/api
+          go test -coverprofile=coverage.out ./... -race -count=1
+          echo "### Go Test Coverage 🧪" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          go tool cover -func=coverage.out >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   js:
     name: JS/TS

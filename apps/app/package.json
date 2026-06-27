@@ -8,7 +8,8 @@
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview --port 3000 --strictPort",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@repo/api-client": "workspace:*",
