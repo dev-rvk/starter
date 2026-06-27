@@ -161,3 +161,63 @@ test: ## Run JS and Go tests
 clean: ## Remove build artifacts and node_modules
 	bun run clean || true
 	rm -rf $(API_DIR)/bin
+
+## ──────────────────────────────────────────────────────────────────────────
+## CI / CD
+## ──────────────────────────────────────────────────────────────────────────
+
+# ── Testing ────────────────────────────────────────────────────────────────
+.PHONY: test-api
+test-api: ## Run Go tests with race detector
+	cd $(API_DIR) && go test ./... -race -count=1
+
+.PHONY: test-js
+test-js: ## Run all JS/TS tests via turbo
+	bun run turbo run test
+
+.PHONY: test-js-affected
+test-js-affected: ## Run JS/TS tests for packages changed vs origin/main
+	bun run turbo run test --filter='[origin/main]'
+
+# ── Linting ────────────────────────────────────────────────────────────────
+.PHONY: lint-api
+lint-api: ## Lint Go source (golangci-lint, config: apps/api/.golangci.yml)
+	cd $(API_DIR) && golangci-lint run ./...
+
+.PHONY: lint-js
+lint-js: ## Lint JS/TS via turbo
+	bun run turbo run lint
+
+# ── Type checking ──────────────────────────────────────────────────────────
+.PHONY: typecheck
+typecheck: ## Typecheck all JS/TS packages via turbo
+	bun run turbo run typecheck
+
+# ── Generated file hygiene ─────────────────────────────────────────────────
+.PHONY: generate-check
+generate-check: ## Fail if generated files differ from what is committed
+	$(MAKE) generate
+	git diff --exit-code -- \
+	  $(API_DIR)/internal/adapters/persistence/postgres/sqlc \
+	  $(API_DIR)/docs \
+	  packages/api-client/src/schema.d.ts
+
+# ── Docker (API) ───────────────────────────────────────────────────────────
+.PHONY: docker-build
+docker-build: ## Build API Docker image. Usage: make docker-build TAG=abc123
+	docker build \
+	  -t starterpack-api:$(or $(TAG),local) \
+	  -f $(API_DIR)/Dockerfile \
+	  $(API_DIR)
+
+.PHONY: docker-push
+docker-push: ## Push image to registry. Usage: make docker-push TAG=abc123 REGISTRY=us-docker.pkg.dev/…
+	docker tag starterpack-api:$(TAG) $(REGISTRY)/starterpack-api:$(TAG)
+	docker push $(REGISTRY)/starterpack-api:$(TAG)
+
+# ── DB migrations (CI / prod) ─────────────────────────────────────────────
+.PHONY: db-migrate-prod
+db-migrate-prod: ## Apply Atlas migrations to a remote DB. Requires DATABASE_URL env var.
+	$(ATLAS) migrate apply \
+	  --dir "file://$(API_DIR)/db/migrations" \
+	  --url "$(DATABASE_URL)"

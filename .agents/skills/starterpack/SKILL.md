@@ -1,6 +1,6 @@
 ---
 name: starterpack
-description: Expert assistance for the starterpack monorepo — a deployable Turborepo with a Vite + TanStack Router frontend, a Go hexagonal (ports & adapters) backend, a shadcn/ui design system, and feature-toggled SaaS integrations. Use this skill whenever the user is working in this repo or asks about its structure, apps, packages, the Go backend (Gin, zerolog, sqlc, pgx, Atlas, Clerk), the Vite apps, the design system, the typed API client, the Makefile workflow, feature toggles, environment variables, how to add features, how to deploy, Go best practices, or the Uber Go Style Guide as applied to this codebase — even if they don't name "starterpack" explicitly.
+description: Expert assistance for the starterpack monorepo — a deployable Turborepo with a Vite + TanStack Router frontend, a Go hexagonal (ports & adapters) backend, a shadcn/ui design system, and feature-toggled SaaS integrations. Use this skill whenever the user is working in this repo or asks about its structure, apps, packages, the Go backend (Gin, zerolog, sqlc, pgx, Atlas, Clerk), the Vite apps, the design system, the typed API client, the Makefile workflow, feature toggles, environment variables, how to add features, how to deploy, CI/CD pipelines, GitHub Actions workflows, Docker builds, Cloud Run, Cloudflare Pages, database migrations in CI, branch strategy, staging/production environments, Go best practices, or the Uber Go Style Guide as applied to this codebase — even if they don't name "starterpack" explicitly.
 ---
 
 # starterpack
@@ -255,12 +255,38 @@ db/queries/<x>.sql   sqlc annotations
 
 After all files exist: `make sqlc && make openapi && make gen-client`.
 
-## Deployment
+## Deployment & CI/CD
 
-Each frontend app builds to static assets (`apps/<app>/dist`) deployable to any
-static host/CDN. The Go API compiles to a single binary (`make build-api`) for a
-container or VM. Run migrations as a discrete CI/CD step (`atlas migrate apply` keyed off
-`DATABASE_URL`). Provisioning manifests are intentionally left to the team.
+The pipeline uses **GitHub Actions** with three workflow files:
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| `ci.yml` | PR to `main` or `release/prod` | generate-check, Go lint+test, JS lint+typecheck+test-affected |
+| `deploy-staging.yml` | Push to `main` | Full tests → Docker build+push → DB migrate → Cloud Run staging → CF Pages staging |
+| `deploy-prod.yml` | Push to `release/prod` | Full tests → Docker build+push → manual approval → DB migrate → Cloud Run prod → CF Pages prod |
+
+**Deploy order is critical**: Migrations → API → Frontends. Never reverse.
+
+**Branch strategy**: `main` is trunk (staging deploys on merge). `release/prod`
+mirrors production. Feature branches PR into `main`; `main → release/prod` PR
+triggers the production deploy.
+
+**Infrastructure**:
+- Go API → Docker image → **GCP Cloud Run** (multi-stage Dockerfile at `apps/api/Dockerfile`)
+- Frontend apps → static `dist/` → **Cloudflare Pages** (via `wrangler-action`)
+- Database → **Neon Postgres** with branch-per-environment (staging/prod)
+- Migrations → `make db-migrate-prod` (Atlas via `npx @ariga/atlas@0.37.0`)
+
+**CI-specific Makefile targets** (under `## CI / CD` section):
+`test-api`, `test-js`, `test-js-affected`, `lint-api`, `lint-js`, `typecheck`,
+`generate-check`, `docker-build`, `docker-push`, `db-migrate-prod`.
+
+**Linting**: `apps/api/.golangci.yml` configures golangci-lint with goimports
+(3-group ordering), errorlint (%w enforcement), prealloc, gosec, and gocritic.
+CI uses `golangci-lint-action@v6` which reads this config automatically.
+
+For complete workflow YAML, secrets matrix, GCP IAM setup, and Cloudflare Pages
+configuration, see `references/deployment-cloud.md`.
 
 ## Reference files
 
@@ -269,3 +295,4 @@ container or VM. Run migrations as a discrete CI/CD step (`atlas migrate apply` 
 - `references/packages.md` — every app and package, key files, and how they fit together
 - `references/customization.md` — swapping providers, adding a domain to the backend, adding a route/feature to the frontend
 - `references/good-practices.md` — Uber Go Style Guide rules applied to this codebase (errors, interfaces, init(), goroutines, testing, linting)
+- `references/deployment-cloud.md` — CI/CD pipeline, GitHub Actions workflows, Docker, Cloud Run, Cloudflare Pages, secrets, GCP IAM, Neon DB branching

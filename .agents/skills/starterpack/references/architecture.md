@@ -201,6 +201,11 @@ the Makefile runs it alongside `turbo dev`.
 | `db-diff` / `db-apply` / `db-status` / `db-reset` / `migrate` | Atlas |
 | `build` | `build-js` (turbo) + `build-api` (go build) |
 | `lint` / `test` / `clean` | JS + Go together |
+| `test-api` / `test-js` / `test-js-affected` | CI test targets (race detector, turbo filter) |
+| `lint-api` / `lint-js` / `typecheck` | CI lint + typecheck targets |
+| `generate-check` | run generators, fail if output differs from committed |
+| `docker-build` / `docker-push` | Build and push API Docker image |
+| `db-migrate-prod` | Apply Atlas migrations to remote DB (CI/prod) |
 
 ## Build outputs
 

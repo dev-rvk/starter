@@ -1,0 +1,98 @@
+# golangci-lint configuration for apps/api.
+# Enforces the Uber Go Style Guide rules adopted in this codebase.
+# See: .agents/skills/starterpack/references/good-practices.md
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    # ── Bug detection ────────────────────────────────────────────────────────
+    - errcheck          # unchecked errors
+    - gosec             # security issues
+    - govet             # suspicious constructs (shadows, printf args, etc.)
+    - staticcheck       # the kitchen-sink analyzer
+    - bodyclose         # unclosed HTTP response bodies
+    - nilerr            # returning nil after checking err != nil
+
+    # ── Style / Uber Guide ───────────────────────────────────────────────────
+    - goimports         # enforce 3-group import ordering (stdlib / external / internal)
+    - revive            # configurable superset of golint
+    - unconvert         # unnecessary type conversions
+    - unparam           # unused function parameters
+    - prealloc          # slice pre-allocation opportunities
+    - misspell          # common misspellings in comments and strings
+    - nolintlint        # ill-formed //nolint directives
+    - errorlint         # wrapping errors (%w) and errors.Is/As usage
+    - gocritic          # highly-opinionated micro-optimisations and style
+    - usestdlibvars     # use constants from stdlib (http.StatusOK, etc.)
+
+    # ── Performance ──────────────────────────────────────────────────────────
+    - copyloopvar       # captures of loop variables
+    - intrange          # integer range loops (Go 1.22+)
+
+linters-settings:
+  goimports:
+    local-prefixes: github.com/starterpack/api
+
+  revive:
+    rules:
+      - name: blank-imports       # allow the swag docs blank import
+        disabled: true
+      - name: exported
+        arguments:
+          - "checkPrivateReceivers"
+      - name: unexported-return
+        disabled: true            # we return unexported types via interfaces
+      - name: unused-parameter
+        disabled: true            # covered by unparam
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - hugeParam                 # our DTOs are small, avoid false positives
+      - rangeValCopy              # same — small structs
+
+  gosec:
+    excludes:
+      - G104                      # we handle unhandled errors via errcheck
+      - G304                      # file path injection — not relevant (no user file paths)
+
+  errorlint:
+    errorf: true                  # enforce fmt.Errorf with %w
+    asserts: true                 # enforce errors.As over type assertion
+    comparison: true              # enforce errors.Is over == comparison
+
+issues:
+  # Don't limit the number of issues per linter — show everything.
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # Test files: relax some linters that add noise to table-driven tests.
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+        - gocritic
+        - revive
+
+    # Generated files: skip entirely.
+    - path: internal/adapters/persistence/postgres/sqlc/
+      linters:
+        - errcheck
+        - gosec
+        - gocritic
+        - revive
+        - goimports
+        - govet
+        - staticcheck
+
+    # Swagger docs init() is the one allowed init().
+    - path: docs/docs.go
+      linters:
+        - goimports
+        - revive

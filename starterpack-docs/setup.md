@@ -152,6 +152,23 @@ make db-status     # check migration status
 make generate      # re-run sqlc + openapi + client codegen
 ```
 
+### CI/CD targets
+
+These targets are used by GitHub Actions but also work locally:
+
+```bash
+make test-api          # Go tests with race detector (-race -count=1)
+make test-js           # all JS/TS tests via turbo
+make test-js-affected  # JS/TS tests only for packages changed vs origin/main
+make lint-api          # golangci-lint (reads apps/api/.golangci.yml)
+make lint-js           # JS/TS lint via turbo
+make typecheck         # TypeScript type-checking across all packages
+make generate-check    # run generators, fail if output differs from committed
+make docker-build TAG=local   # build the API Docker image
+make docker-push TAG=abc123 REGISTRY=us-docker.pkg.dev/…  # push to registry
+make db-migrate-prod   # apply Atlas migrations to a remote DB (needs DATABASE_URL)
+```
+
 ## Go style guide
 
 The Go backend follows the **Uber Go Style Guide**. The rules applied to this

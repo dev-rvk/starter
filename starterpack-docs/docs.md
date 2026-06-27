@@ -30,7 +30,8 @@ packages/
   design-system/   shadcn/ui + Tailwind v4 tokens + auth forms
   email/           Resend + React Email templates — kept, key-gated
   typescript-config/  Shared tsconfig presets — kept
-Makefile           Single entrypoint (wraps bun/turbo + Go toolchain)
+.github/workflows/   CI/CD pipelines (ci, deploy-staging, deploy-prod)
+Makefile           Single entrypoint (wraps bun/turbo + Go toolchain + CI/CD targets)
 change.md          16-item prioritised Go architecture change plan
 ```
 
@@ -275,12 +276,83 @@ so they only run when asked. To add another dependency, add a service (behind a
 profile if optional), document its local URL and hosted equivalent, and read its
 URL from env in the relevant config — mirroring the Postgres pattern.
 
+## Phase 8 — CI/CD pipeline & cloud deployment
+
+Full CI/CD pipeline using **GitHub Actions**, deploying the Go API to **GCP Cloud
+Run** and the frontend apps to **Cloudflare Pages**.
+
+### Branch strategy
+
+| Branch | Purpose | Deploy trigger |
+|--------|---------|----------------|
+| `main` | Trunk development | Push → staging deploy |
+| `release/prod` | Production mirror | Push → production deploy (with manual approval gate) |
+| `feature/*` | Feature work | PR into `main` (CI only) |
+
+### What was created
+
+| File | Purpose |
+|------|---------|
+| `apps/api/Dockerfile` | Multi-stage build: `golang:1.26-alpine` → `gcr.io/distroless/static-nonroot`. ~10–15 MB final image. |
+| `apps/api/.dockerignore` | Excludes bin/, docs/, *.md, .env*, generated sqlc from Docker context |
+| `apps/api/.golangci.yml` | golangci-lint config: goimports (3-group), errorlint (%w), prealloc, gosec, gocritic. Excludes generated sqlc and test files from noisy linters. |
+| Root `Makefile` (CI/CD section) | New targets: `test-api`, `test-js`, `test-js-affected`, `lint-api`, `lint-js`, `typecheck`, `generate-check`, `docker-build`, `docker-push`, `db-migrate-prod` |
+
+### Workflow files (`.github/workflows/`)
+
+**`ci.yml`** — runs on every PR to `main` or `release/prod`:
+- `generate-check`: runs `make generate`, asserts `git diff --exit-code` on all
+  generated paths (sqlc output, OpenAPI docs, `schema.d.ts`). Catches stale
+  generated code.
+- `api`: golangci-lint + `make test-api` (race detector enabled)
+- `js`: `make lint-js` + `make typecheck` + `make test-js-affected` (turbo
+  affected filter against `origin/main`)
+
+**`deploy-staging.yml`** — runs on push to `main`:
+- Full test suite (Go + JS)
+- Build + push Docker image tagged with `$GITHUB_SHA` to GCP Artifact Registry
+- `make db-migrate-prod` against `STAGING_DATABASE_URL` (Neon staging branch)
+- Deploy API to Cloud Run staging (`starterpack-api-staging`)
+- Build + deploy `app` and `web` to Cloudflare Pages (`--branch=staging`)
+
+**`deploy-prod.yml`** — runs on push to `release/prod`:
+- Same test + build pipeline
+- GitHub Environment `production` gate (manual reviewer approval)
+- Migrate against `PROD_DATABASE_URL` (Neon main branch)
+- Deploy API to Cloud Run prod (`starterpack-api`)
+- Deploy frontends to Cloudflare Pages (`--branch=production`)
+
+### Deploy order (enforced via `needs:`)
+
+```
+Migrations → API → Frontends
+```
+
+Never reverse. The `@repo/api-client` types are generated from the API’s OpenAPI
+spec — deploying frontends before the API creates a window where the client
+references endpoints that don’t exist.
+
+### Key decisions
+
+- **Atlas via `npx @ariga/atlas@0.37.0`** in `db-migrate-prod` — matches the
+  local Makefile to prevent version drift. No standalone Atlas CLI install.
+- **Wrangler-action over CF git integration** — enforces deploy order via
+  `needs:`. Disable CF git integration in the dashboard to avoid double deploys.
+- **Neon branch-per-environment** — `staging` branch from `main`; each gets its
+  own connection string. Migrations run independently against each branch.
+- **Secrets via Google Secret Manager** — Cloud Run reads `CLERK_SECRET_KEY`,
+  `JWT_SECRET`, `DATABASE_URL` from Secret Manager at runtime (never as plain
+  `env_vars` in the revision config).
+
+Full reference: `.agents/skills/starterpack/references/deployment-cloud.md`.
+
+---
+
 ## Deferred (intentionally not in this pass)
 
 - Observability stack (Prometheus + Grafana) — tracked as Wave 5 in `change.md`
 - SSR/SEO for the marketing site (currently a client-rendered SPA)
 - Stripe checkout, Resend sending, self-hosted PostHog wiring
-- Deployment manifests (Docker images / Compose / hosting)
 - Request-ID middleware — tracked as Wave 5 in `change.md`
 - Functional options pattern on services — tracked as Wave 5 in `change.md`
 
@@ -293,7 +365,13 @@ URL from env in the relevant config — mirroring the Postgres pattern.
   `make db-apply && make dev` against a real PostgreSQL to exercise it end-to-end.
 - **Wave 1–5 Go changes** are documented in `change.md`; tackle in order to avoid
   disruption between waves.
-- `TodoHandler` is missing from the HTTP adapter — tracked as Wave 2 in
-  `change.md`; domain + service already exist.
-- `apps/api/.golangci.yml` to be added as part of Wave 3; run
-  `golangci-lint run ./...` inside `apps/api/` manually until then.
+- `release/prod` branch needs to be created before first production deploy:
+  `git checkout main && git checkout -b release/prod && git push -u origin release/prod`
+- Set up GitHub Environments (`staging`, `production`) with required reviewers for
+  the production approval gate.
+- Create GCP Artifact Registry repo, service account, and IAM bindings (see
+  `deployment-cloud.md` section 9).
+- Create Cloudflare Pages projects (`starterpack-app`, `starterpack-web`) without
+  git integration (see `deployment-cloud.md` section 10).
+- Create Neon staging branch and store connection strings as GitHub secrets.
+- Populate all GitHub secrets (see `deployment-cloud.md` section 8 for the full matrix).
