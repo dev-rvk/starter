@@ -15,7 +15,7 @@ RUN CGO_ENABLED=0 GOOS=linux \
     go build -ldflags="-s -w" -o bin/api ./cmd/api
 
 # ── Runtime stage ──────────────────────────────────────────────────────────────
-FROM gcr.io/distroless/static-nonroot:nonroot
+FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /app
 COPY --from=builder /app/bin/api ./api

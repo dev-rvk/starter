@@ -185,13 +185,13 @@ lint-api: ## Lint Go source (golangci-lint, config: apps/api/.golangci.yml)
 	cd $(API_DIR) && golangci-lint run ./...
 
 .PHONY: lint-js
-lint-js: ## Lint JS/TS via turbo
-	bun run turbo run lint
+lint-js: ## Lint JS/TS via ultracite
+	bun run check
 
 # ── Type checking ──────────────────────────────────────────────────────────
 .PHONY: typecheck
-typecheck: ## Typecheck all JS/TS packages via turbo
-	bun run turbo run typecheck
+typecheck: ## Typecheck all JS/TS packages via turbo (excluding storybook)
+	bun run turbo run typecheck --filter='!storybook'
 
 # ── Generated file hygiene ─────────────────────────────────────────────────
 .PHONY: generate-check

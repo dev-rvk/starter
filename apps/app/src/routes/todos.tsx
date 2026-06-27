@@ -75,7 +75,10 @@ function Todos() {
               placeholder="What needs doing?"
               value={title}
             />
-            <Button disabled={!title.trim() || createTodo.isPending} type="submit">
+            <Button
+              disabled={!title.trim() || createTodo.isPending}
+              type="submit"
+            >
               {createTodo.isPending ? "Adding…" : "Add"}
             </Button>
           </form>

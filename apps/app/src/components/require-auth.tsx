@@ -17,7 +17,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
 function ClerkGuard({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
-  return renderGuard(isLoaded, isSignedIn, children);
+  return renderGuard(isLoaded, isSignedIn ?? false, children);
 }
 
 function LocalGuard({ children }: { children: ReactNode }) {

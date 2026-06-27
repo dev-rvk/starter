@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 "use client";
 
 import { ClerkProvider } from "@clerk/clerk-react";

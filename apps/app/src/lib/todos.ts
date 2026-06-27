@@ -1,8 +1,4 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useApiClient } from "./api";
 
 /**
@@ -10,13 +6,13 @@ import { useApiClient } from "./api";
  * every field as optional (swag emits them that way), so we coerce to concrete
  * values once, here, and let the rest of the app rely on a clean type.
  */
-export type Todo = {
-  id: string;
-  title: string;
+export interface Todo {
   completed: boolean;
   createdAt: string;
+  id: string;
+  title: string;
   updatedAt: string;
-};
+}
 
 const TODOS_KEY = ["todos"] as const;
 

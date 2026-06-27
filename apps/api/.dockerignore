@@ -1,6 +1,4 @@
 bin/
-docs/
 *.md
 .env*
 .golangci.yml
-internal/adapters/persistence/postgres/sqlc/

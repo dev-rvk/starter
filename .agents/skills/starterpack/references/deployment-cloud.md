@@ -83,12 +83,12 @@ test-js-affected:                      ## Run JS/TS tests only for packages affe
 lint-api:                              ## Run golangci-lint on the API
 	cd apps/api && golangci-lint run ./...
 
-lint-js:                               ## Run ESLint across all JS/TS packages
-	bun run turbo run lint
+lint-js:                               ## Run checks/linter across all JS/TS packages
+	bun run check
 
 # ── Type checking ────────────────────────────────────────
-typecheck:                             ## Run TypeScript type-checking across all packages
-	bun run turbo run typecheck
+typecheck:                             ## Run TypeScript type-checking across all packages (excluding storybook)
+	bun run turbo run typecheck --filter='!storybook'
 
 # ── Code generation ──────────────────────────────────────
 generate-check:                        ## Run all generators and fail if working tree is dirty
@@ -121,7 +121,7 @@ The API uses a **multi-stage build**:
 
 ```
 Stage 1: golang:1.26-alpine  (build)
-Stage 2: gcr.io/distroless/static-nonroot:nonroot  (runtime)
+Stage 2: gcr.io/distroless/static:nonroot  (runtime)
 ```
 
 Key build flags:

@@ -293,8 +293,8 @@ Run** and the frontend apps to **Cloudflare Pages**.
 
 | File | Purpose |
 |------|---------|
-| `apps/api/Dockerfile` | Multi-stage build: `golang:1.26-alpine` → `gcr.io/distroless/static-nonroot`. ~10–15 MB final image. |
-| `apps/api/.dockerignore` | Excludes bin/, docs/, *.md, .env*, generated sqlc from Docker context |
+| `apps/api/Dockerfile` | Multi-stage build: `golang:1.26-alpine` → `gcr.io/distroless/static:nonroot`. ~10–15 MB final image. |
+| `apps/api/.dockerignore` | Excludes bin/, *.md, .env*, and linter config from Docker context |
 | `apps/api/.golangci.yml` | golangci-lint config: goimports (3-group), errorlint (%w), prealloc, gosec, gocritic. Excludes generated sqlc and test files from noisy linters. |
 | Root `Makefile` (CI/CD section) | New targets: `test-api`, `test-js`, `test-js-affected`, `lint-api`, `lint-js`, `typecheck`, `generate-check`, `docker-build`, `docker-push`, `db-migrate-prod` |
 
