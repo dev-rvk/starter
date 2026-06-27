@@ -33,10 +33,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
-      - uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: apps/api
+      - run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      - run: make lint-api
       - run: make test-api
 
   js:
