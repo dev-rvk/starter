@@ -16,7 +16,7 @@ type Account struct {
 }
 
 // New builds an Account. The caller must hash the password before calling this.
-func New(id string, email string, passwordHash string, now time.Time) *Account {
+func New(id, email, passwordHash string, now time.Time) *Account {
 	return &Account{
 		ID:           id,
 		Email:        email,

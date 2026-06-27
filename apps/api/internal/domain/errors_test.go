@@ -50,7 +50,7 @@ func TestNotFound(t *testing.T) {
 			if err.Field != tt.wantField {
 				t.Errorf("Field = %q, want %q", err.Field, tt.wantField)
 			}
-			if err.err != ErrNotFound {
+			if !errors.Is(err.err, ErrNotFound) {
 				t.Errorf("wrapped error = %v, want ErrNotFound", err.err)
 			}
 		})
@@ -102,7 +102,7 @@ func TestAlreadyExists(t *testing.T) {
 			if err.Field != tt.wantField {
 				t.Errorf("Field = %q, want %q", err.Field, tt.wantField)
 			}
-			if err.err != ErrAlreadyExists {
+			if !errors.Is(err.err, ErrAlreadyExists) {
 				t.Errorf("wrapped error = %v, want ErrAlreadyExists", err.err)
 			}
 		})
@@ -160,7 +160,7 @@ func TestValidationError(t *testing.T) {
 			if err.Message != tt.wantMsg {
 				t.Errorf("Message = %q, want %q", err.Message, tt.wantMsg)
 			}
-			if err.err != ErrValidation {
+			if !errors.Is(err.err, ErrValidation) {
 				t.Errorf("wrapped error = %v, want ErrValidation", err.err)
 			}
 		})
@@ -329,7 +329,7 @@ func TestUnwrap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.err.Unwrap(); got != tt.wantSentinel {
+			if got := tt.err.Unwrap(); !errors.Is(got, tt.wantSentinel) {
 				t.Errorf("Unwrap() = %v, want %v", got, tt.wantSentinel)
 			}
 		})

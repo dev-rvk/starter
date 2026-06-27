@@ -152,6 +152,10 @@ lint: ## Lint JS (ultracite) and vet Go
 lint-fix: ## Auto-fix JS/TS formatting and linting issues (ultracite)
 	bun run fix
 
+.PHONY: lint-api-fix
+lint-api-fix: ## Auto-fix Go linting and import formatting (golangci-lint)
+	cd $(API_DIR) && golangci-lint run --fix ./...
+
 .PHONY: test
 test: ## Run JS and Go tests
 	bun run test

@@ -4,8 +4,8 @@ import "time"
 
 // Todo is the domain entity.
 type Todo struct {
-	ID        string    `validate:"required"`
-	Title     string    `validate:"required,min=1,max=50"`
+	ID        string `validate:"required"`
+	Title     string `validate:"required,min=1,max=50"`
 	Completed bool
 	CreatedAt time.Time `validate:"required"`
 	UpdatedAt time.Time `validate:"required"`

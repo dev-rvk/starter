@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/starterpack/api/internal/domain"
 )
 
@@ -31,7 +32,7 @@ func handleDomainError(c *gin.Context, err error) {
 // mapDomainError translates domain errors into HTTP statuses. It prefers the
 // structured domain.Error type (via errors.As) and falls back to sentinel
 // errors.Is checks for backward compatibility.
-func mapDomainError(err error) (int, string) {
+func mapDomainError(err error) (status int, message string) {
 	// Prefer the structured error type.
 	var domErr *domain.Error
 	if errors.As(err, &domErr) {
@@ -59,4 +60,3 @@ func mapDomainError(err error) (int, string) {
 		return http.StatusInternalServerError, "internal server error"
 	}
 }
-

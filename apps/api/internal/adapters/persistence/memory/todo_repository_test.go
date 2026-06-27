@@ -104,13 +104,13 @@ func TestTodoRepository_Update(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
-		name       string
-		seed       *todo.Todo
-		update     *todo.Todo
-		wantErr    bool
-		wantErrIs  error
-		wantTitle  string
-		wantDone   bool
+		name      string
+		seed      *todo.Todo
+		update    *todo.Todo
+		wantErr   bool
+		wantErrIs error
+		wantTitle string
+		wantDone  bool
 	}{
 		{
 			name:      "update existing persists changes",

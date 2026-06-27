@@ -9,6 +9,7 @@ import (
 	"regexp"
 
 	"github.com/go-playground/validator/v10"
+
 	"github.com/starterpack/api/internal/domain"
 )
 

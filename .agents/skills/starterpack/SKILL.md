@@ -201,9 +201,10 @@ bunx shadcn@latest add <component> -c packages/design-system
 ### Quality and build
 
 ```bash
-make lint    # ultracite (JS) + go vet
-make test    # bun test + go test
-make build   # all JS apps (turbo) + the Go binary
+make lint         # ultracite (JS) + go vet
+make lint-api-fix # auto-fix Go linting and import formatting (golangci-lint)
+make test         # bun test + go test
+make build        # all JS apps (turbo) + the Go binary
 ```
 
 ## Uber Go Style Guide — critical rules for this codebase

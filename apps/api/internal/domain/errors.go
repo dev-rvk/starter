@@ -10,10 +10,10 @@ import "errors"
 type ErrorKind int
 
 const (
-	KindUnknown      ErrorKind = iota // 0 — zero value; never set intentionally
-	KindNotFound                      // 1 — 404
-	KindAlreadyExists                 // 2 — 409
-	KindValidation                    // 3 — 422
+	KindUnknown       ErrorKind = iota // 0 — zero value; never set intentionally
+	KindNotFound                       // 1 — 404
+	KindAlreadyExists                  // 2 — 409
+	KindValidation                     // 3 — 422
 )
 
 // Sentinel errors for backward-compatible errors.Is() checks. The structured

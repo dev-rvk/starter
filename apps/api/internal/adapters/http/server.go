@@ -21,8 +21,8 @@ type ServerDeps struct {
 	Logger      zerolog.Logger
 	UserHandler *UserHandler
 	TodoHandler *TodoHandler
-	AuthHandler *AuthHandler          // nil when Clerk is enabled (local auth not needed)
-	JWTManager  *jwtutil.JWTManager   // nil when Clerk is enabled
+	AuthHandler *AuthHandler        // nil when Clerk is enabled (local auth not needed)
+	JWTManager  *jwtutil.JWTManager // nil when Clerk is enabled
 }
 
 // NewRouter builds the Gin engine with middleware and routes.
@@ -47,10 +47,11 @@ func NewRouter(deps ServerDeps) *gin.Engine {
 
 	api := r.Group("/api/v1")
 
-	if deps.Config.Clerk.Enabled() {
+	switch {
+	case deps.Config.Clerk.Enabled():
 		// Clerk mode: all /api/v1 routes are protected by Clerk JWT.
 		api.Use(middleware.ClerkAuth())
-	} else if deps.AuthHandler != nil {
+	case deps.AuthHandler != nil:
 		// Local auth mode: mount public auth routes, then protect the rest.
 		deps.AuthHandler.registerPublic(api)
 
@@ -60,7 +61,7 @@ func NewRouter(deps ServerDeps) *gin.Engine {
 
 		deps.Logger.Info().
 			Msg("auth: local username/password auth ENABLED")
-	} else {
+	default:
 		deps.Logger.Warn().
 			Msg("Clerk disabled (CLERK_SECRET_KEY unset): /api/v1 routes are UNPROTECTED")
 	}

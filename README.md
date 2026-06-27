@@ -1,9 +1,35 @@
-# starterpack
+# starterpack: The Go + React SaaS Starter
 
-A deployable Turborepo starter: **Vite + TanStack Router** frontend, a **Go
-hexagonal** backend, a **shadcn/ui** design system, and feature-toggled
-integrations (Clerk, Stripe, analytics, email, error tracking). A re-platform of
-[next-forge](https://www.next-forge.com) onto Vite + Go.
+**starterpack** is a production-ready, deployable Turborepo SaaS starter template. It combines a blazing-fast **Vite + TanStack Router (React)** frontend with a robust **Go hexagonal** backend. Featuring a **shadcn/ui** design system and feature-toggled integrations (Clerk, Stripe, analytics, email, error tracking). A powerful re-platform of [next-forge](https://www.next-forge.com) onto Vite + Go.
+
+## Scaffold with `create-go-starter`
+
+You can scaffold a new app from the [starterpack](https://github.com/dev-rvk/starter)
+monorepo template using our CLI:
+
+```bash
+bun create go-starter my-app     # via bun's create-* resolver
+bunx create-go-starter my-app    # via npm/bunx
+npm create go-starter@latest my-app
+```
+
+If you omit the name it will prompt for one. The CLI downloads the template from
+GitHub, renames the root `package.json`, reinitialises git, and prints the
+`make setup` next steps.
+
+### CLI Flags
+
+| Flag | Meaning |
+|------|---------|
+| `[name]` | Target directory / project name (prompted if omitted) |
+| `--ref <branch\|tag>` | Template ref to fetch (default: repo default branch) |
+| `--no-git` | Skip `git init` + initial commit |
+
+`STARTERPACK_TEMPLATE` overrides the source repo (default `github:dev-rvk/starter`).
+
+Because the template is fetched from GitHub at run time, you only republish this
+CLI when its own logic changes — template updates ship by pushing to the template
+repo.
 
 ## Quick start
 
@@ -125,6 +151,7 @@ make db-reset     # teardown DB volume and run all migrations
 make generate     # regenerate sqlc + OpenAPI + typed client
 make lint         # check JS (ultracite) and vet Go
 make lint-fix     # auto-fix JS/TS formatting and linting
+make lint-api-fix # auto-fix Go linting and import formatting (golangci-lint)
 make test         # bun test + go test
 make help         # list every target
 ```

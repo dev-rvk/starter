@@ -15,7 +15,7 @@ type User struct {
 }
 
 // New builds a User.
-func New(id string, username string, email string, now time.Time) *User {
+func New(id, username, email string, now time.Time) *User {
 	return &User{
 		ID:        id,
 		Username:  username,
