@@ -278,8 +278,6 @@ packages/database/generated
 .contentlayer
 .content-collections
 .source
-# Starterpack: TanStack Router generated route tree
-**/src/routeTree.gen.ts
 
 # Starterpack: Vite
 **/.vite/

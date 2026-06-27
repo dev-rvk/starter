@@ -23,7 +23,8 @@
       "!apps/email/.react-email",
       "!packages/cms/basehub-types.d.ts",
       "!packages/api-client/src/schema.d.ts",
-      "!apps/api/docs"
+      "!apps/api/docs",
+      "!**/routeTree.gen.ts"
     ]
   }
 }

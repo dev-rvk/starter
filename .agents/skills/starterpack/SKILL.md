@@ -283,7 +283,9 @@ triggers the production deploy.
 
 **Linting**: `apps/api/.golangci.yml` configures golangci-lint with goimports
 (3-group ordering), errorlint (%w enforcement), prealloc, gosec, and gocritic.
-CI uses `golangci-lint-action@v6` which reads this config automatically.
+CI uses `golangci-lint-action@v6` (with `version: latest` to match the Go
+toolchain version) which reads this config automatically. `routeTree.gen.ts`
+files are excluded from Biome linting via `biome.jsonc`.
 
 For complete workflow YAML, secrets matrix, GCP IAM setup, and Cloudflare Pages
 configuration, see `references/deployment-cloud.md`.

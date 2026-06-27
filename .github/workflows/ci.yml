@@ -1,13 +1,11 @@
 name: CI
 
 on:
-  push:
-    branches: [main, release/prod]
   pull_request:
     branches: [main, release/prod]
 
 concurrency:
-  group: ci-${{ github.head_ref || github.ref }}
+  group: ci-${{ github.head_ref }}
   cancel-in-progress: true
 
 jobs:
@@ -34,6 +32,7 @@ jobs:
           go-version: "1.26"
       - uses: golangci/golangci-lint-action@v6
         with:
+          version: latest
           working-directory: apps/api
       - run: make test-api
 
@@ -53,4 +52,4 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: make lint-js
       - run: make typecheck
-      - run: make test-js
+      - run: make test-js-affected

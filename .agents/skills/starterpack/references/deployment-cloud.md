@@ -182,6 +182,7 @@ jobs:
           go-version: "1.26"
       - uses: golangci/golangci-lint-action@v6
         with:
+          version: latest
           working-directory: apps/api
       - run: make test-api
 
@@ -245,6 +246,7 @@ jobs:
           go-version: "1.26"
       - uses: golangci/golangci-lint-action@v6
         with:
+          version: latest
           working-directory: apps/api
 
   test-js:
@@ -396,6 +398,7 @@ jobs:
           go-version: "1.26"
       - uses: golangci/golangci-lint-action@v6
         with:
+          version: latest
           working-directory: apps/api
 
   test-js:
@@ -722,6 +725,7 @@ CI uses `golangci/golangci-lint-action@v6` which:
 ```yaml
 - uses: golangci/golangci-lint-action@v6
   with:
+    version: latest
     working-directory: apps/api
 ```
 
@@ -735,6 +739,26 @@ make lint-api
 ### Keeping configs in sync
 
 The action and the Makefile both read `apps/api/.golangci.yml`. There is no separate CI config. If you modify linter rules, the change applies everywhere.
+
+---
+
+## 13. TanStack Router Generated Files
+
+The TanStack Router Vite plugin generates `routeTree.gen.ts` in each frontend
+app's `src/` directory. These files **must be committed** to version control so
+that `tsc --noEmit` (typecheck) works in CI without running a Vite build first.
+
+The files are excluded from Biome linting in `biome.jsonc`:
+
+```json
+"!**/routeTree.gen.ts"
+```
+
+They contain `as any` casts and unsorted imports by design — TanStack Router
+generates the code this way intentionally.
+
+> **Do not re-add `**/src/routeTree.gen.ts` to `.gitignore`.** Doing so will
+> break `make typecheck` in CI.
 
 ---
 

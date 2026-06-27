@@ -201,6 +201,8 @@ when `VITE_CLERK_PUBLISHABLE_KEY` is set; re-exports Clerk hooks.
 **Gotchas reproduced & fixed:**
 - The router plugin generates `src/routeTree.gen.ts` during `vite build`/`dev`, so
   the build script is `vite build && tsc --noEmit` (vite first, then typecheck).
+  The generated files are committed to version control and excluded from Biome
+  linting (`!**/routeTree.gen.ts` in `biome.jsonc`).
 - `tsc` in consuming apps can't resolve the design-system source subpaths via
   `exports` alone → add `"@repo/design-system/*": ["../../packages/design-system/src/*"]`
   to each app's `tsconfig` `paths`.
@@ -358,8 +360,9 @@ Full reference: `.agents/skills/starterpack/references/deployment-cloud.md`.
 
 ## Known follow-ups
 
-- `make typecheck` (or `bun run typecheck`) needs the generated route trees; run
-  `make dev` or `make build` once first (vite generates them).
+- `routeTree.gen.ts` files are now committed to version control (un-ignored from
+  `.gitignore`) and excluded from Biome linting (`biome.jsonc`). This allows
+  `make typecheck` to work in CI without running a Vite build first.
 - The app's main JS chunk is large; add route-level `manualChunks` later.
 - Live DB path (Atlas → pgx) verified structurally via sqlc codegen; run
   `make db-apply && make dev` against a real PostgreSQL to exercise it end-to-end.
