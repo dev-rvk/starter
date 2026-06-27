@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, release/prod]
+  pull_request:
+    branches: [main, release/prod]
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate-check:
+    name: Generate Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: make tools
+      - run: make generate-check
+
+  api:
+    name: API (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: apps/api
+      - run: make test-api
+
+  js:
+    name: JS/TS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2          # Turbo needs git history for --filter
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/turbo
+          key: turbo-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: turbo-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: make lint-js
+      - run: make typecheck
+      - run: make test-js
