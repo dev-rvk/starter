@@ -224,4 +224,5 @@ docker-push: ## Push image to registry. Usage: make docker-push TAG=abc123 REGIS
 db-migrate-prod: ## Apply Atlas migrations to a remote DB. Requires DATABASE_URL env var.
 	$(ATLAS) migrate apply \
 	  --dir "file://$(API_DIR)/db/migrations" \
-	  --url "$(DATABASE_URL)"
+	  --url "$(DATABASE_URL)" \
+	  --revisions-schema public
