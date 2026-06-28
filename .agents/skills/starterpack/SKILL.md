@@ -276,7 +276,7 @@ triggers the production deploy.
 - Go API → Docker image → **Docker Hub** → **GCP Cloud Run** (multi-stage Dockerfile at `apps/api/Dockerfile`)
 - Frontend apps → static `dist/` → **Cloudflare Pages** (via `wrangler-action`)
 - Database → **Neon Postgres** with branch-per-environment (staging/prod)
-- Migrations → `make db-migrate-prod` (Atlas via `npx @ariga/atlas@0.37.0`)
+- Migrations → `make db-migrate-prod` (Atlas via `npx @ariga/atlas@1.2.3`)
 
 **CI workflow** (`ci.yml`): Runs on PRs and manual dispatch. Verifies generated
 code, lints/tests Go, and lints/typechecks/tests JS/TS in parallel.

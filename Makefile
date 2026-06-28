@@ -83,7 +83,7 @@ deps-logs: ## Tail local service logs
 ## ──────────────────────────────────────────────────────────────────────────
 ## Database (Atlas)
 ## ──────────────────────────────────────────────────────────────────────────
-ATLAS := npx @ariga/atlas@0.37.0
+ATLAS := npx @ariga/atlas@1.2.3
 
 .PHONY: db-diff db-apply db-lint db-status db-reset migrate migrate-new
 db-diff: ## Generate migration: make db-diff name=add_users

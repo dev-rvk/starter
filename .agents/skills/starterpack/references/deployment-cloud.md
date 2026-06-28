@@ -104,12 +104,12 @@ docker-push:                           ## Tag and push the API image to the regi
 
 # ── Database ─────────────────────────────────────────────
 db-migrate-prod:                       ## Apply migrations to a remote database
-	npx @ariga/atlas@0.37.0 migrate apply \
+	npx @ariga/atlas@1.2.3 migrate apply \
 		--dir file://apps/api/db/migrations \
 		--url $(DATABASE_URL)
 ```
 
-> **Why `npx @ariga/atlas@0.37.0`?** The local Makefile already uses this exact invocation for `db-migrate` and `db-diff`. Pinning the same version in CI prevents version drift between local and deployed schemas. Do **not** install a standalone Atlas CLI or use a different version.
+> **Why `npx @ariga/atlas@1.2.3`?** The local Makefile already uses this exact invocation for `db-migrate` and `db-diff`. Pinning the same version in CI prevents version drift between local and deployed schemas. Do **not** install a standalone Atlas CLI or use a different version.
 
 ---
 

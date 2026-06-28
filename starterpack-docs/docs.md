@@ -336,7 +336,7 @@ references endpoints that don’t exist.
 
 ### Key decisions
 
-- **Atlas via `npx @ariga/atlas@0.37.0`** in `db-migrate-prod` — matches the
+- **Atlas via `npx @ariga/atlas@1.2.3`** in `db-migrate-prod` — matches the
   local Makefile to prevent version drift. No standalone Atlas CLI install.
 - **Wrangler-action over CF git integration** — enforces deploy order via
   `needs:`. Disable CF git integration in the dashboard to avoid double deploys.
