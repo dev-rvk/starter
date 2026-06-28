@@ -92,6 +92,7 @@ jobs:
           service: starterpack-api-staging
           region: ${{ env.GCP_REGION }}
           image: docker.io/${{ env.IMAGE }}:${{ github.sha }}
+          flags: --allow-unauthenticated
           env_vars: |
             GIN_MODE=release
             APP_ENV=staging
