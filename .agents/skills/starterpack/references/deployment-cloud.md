@@ -1,7 +1,7 @@
 # CI/CD & Cloud Deployment Reference
 
 > Authoritative reference for deploying the starterpack monorepo.
-> **Stack**: GCP Cloud Run (API) · Cloudflare Pages (frontends) · Neon Postgres · GitHub Actions CI/CD.
+> **Stack**: Docker Hub (images) · GCP Cloud Run (API) · Cloudflare Pages (frontends) · Neon Postgres · GitHub Actions CI/CD.
 
 ---
 
@@ -42,7 +42,7 @@ feature/* ──PR──▶ main (trunk) ──PR──▶ release/prod
 |-----|---------------|--------|--------|-------|
 | `apps/app` | `dist/` (Vite) | Cloudflare Pages | No | Main SaaS frontend |
 | `apps/web` | `dist/` (Vite) | Cloudflare Pages | No | Marketing / landing site |
-| `apps/api` | Docker image | Google Cloud Run | Yes | Go API server |
+| `apps/api` | Docker image | Docker Hub → Google Cloud Run | Yes | Go API server |
 | `apps/storybook` | `storybook-static/` | Cloudflare Pages (optional) | No | Design system preview |
 | `apps/email` | dev preview only | **Not deployed** | — | React Email templates, preview-only |
 
@@ -99,8 +99,8 @@ docker-build:                          ## Build the API Docker image
 	docker build -t starterpack-api:$(TAG) -f apps/api/Dockerfile apps/api
 
 docker-push:                           ## Tag and push the API image to the registry
-	docker tag starterpack-api:$(TAG) $(REGISTRY)/starterpack-api:$(TAG)
-	docker push $(REGISTRY)/starterpack-api:$(TAG)
+	docker tag starterpack-api:$(TAG) $(REGISTRY):$(TAG)
+	docker push $(REGISTRY):$(TAG)
 
 # ── Database ─────────────────────────────────────────────
 db-migrate-prod:                       ## Apply migrations to a remote database
@@ -222,7 +222,7 @@ concurrency:
 
 env:
   GCP_REGION: us-central1
-  IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/starterpack/starterpack-api
+  IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/starterpack-api
 
 jobs:
   # ── Test ─────────────────────────────────────────────
@@ -274,17 +274,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: google-github-actions/auth@v2
+      - uses: docker/login-action@v3
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-      - run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - run: make docker-build TAG=${{ github.sha }}
-        env:
-          TAG: ${{ github.sha }}
       - run: make docker-push TAG=${{ github.sha }} REGISTRY=${{ env.IMAGE }}
-        env:
-          TAG: ${{ github.sha }}
-          REGISTRY: ${{ env.IMAGE }}
 
   # ── Migrate ─────────────────────────────────────────
   migrate:
@@ -311,7 +306,7 @@ jobs:
         with:
           service: starterpack-api-staging
           region: ${{ env.GCP_REGION }}
-          image: ${{ env.IMAGE }}:${{ github.sha }}
+          image: docker.io/${{ env.IMAGE }}:${{ github.sha }}
           env_vars: |
             GIN_MODE=release
             APP_ENV=staging
@@ -374,7 +369,7 @@ concurrency:
 
 env:
   GCP_REGION: us-central1
-  IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/starterpack/starterpack-api
+  IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/starterpack-api
 
 jobs:
   # ── Test ─────────────────────────────────────────────
@@ -426,17 +421,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: google-github-actions/auth@v2
+      - uses: docker/login-action@v3
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-      - run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - run: make docker-build TAG=${{ github.sha }}
-        env:
-          TAG: ${{ github.sha }}
       - run: make docker-push TAG=${{ github.sha }} REGISTRY=${{ env.IMAGE }}
-        env:
-          TAG: ${{ github.sha }}
-          REGISTRY: ${{ env.IMAGE }}
 
   # ── Approval Gate ───────────────────────────────────
   approve:
@@ -472,7 +462,7 @@ jobs:
         with:
           service: starterpack-api
           region: ${{ env.GCP_REGION }}
-          image: ${{ env.IMAGE }}:${{ github.sha }}
+          image: docker.io/${{ env.IMAGE }}:${{ github.sha }}
           env_vars: |
             GIN_MODE=release
             APP_ENV=production
@@ -553,8 +543,10 @@ All secrets are stored in **GitHub Repository Secrets** or scoped to **GitHub En
 
 | Secret | Used by | Description |
 |--------|---------|-------------|
+| `DOCKERHUB_USERNAME` | Docker Hub push | Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub push | Docker Hub access token (Read & Write) |
 | `GCP_PROJECT_ID` | All GCP steps | Google Cloud project ID |
-| `GCP_SA_KEY` | Artifact Registry push, Cloud Run deploy | Service account JSON key |
+| `GCP_SA_KEY` | Cloud Run deploy | Service account JSON key |
 | `CF_API_TOKEN` | Cloudflare Pages deploy | Cloudflare API token with Pages permissions |
 | `CF_ACCOUNT_ID` | Cloudflare Pages deploy | Cloudflare account identifier |
 
@@ -599,7 +591,6 @@ gcloud iam service-accounts create starterpack-ci \
 
 | Role | Purpose |
 |------|---------|
-| `roles/artifactregistry.writer` | Push Docker images to Artifact Registry |
 | `roles/run.developer` | Deploy new Cloud Run revisions |
 | `roles/iam.serviceAccountUser` | Act as the Cloud Run runtime service account |
 | `roles/secretmanager.secretAccessor` | Read secrets from Secret Manager at deploy time |
@@ -610,7 +601,6 @@ Grant the roles:
 SA_EMAIL="starterpack-ci@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
 
 for ROLE in \
-  roles/artifactregistry.writer \
   roles/run.developer \
   roles/iam.serviceAccountUser \
   roles/secretmanager.secretAccessor; do
@@ -620,15 +610,6 @@ for ROLE in \
 done
 ```
 
-### Create the Artifact Registry repository
-
-```bash
-gcloud artifacts repositories create starterpack \
-  --repository-format=docker \
-  --location=us-central1 \
-  --description="Starterpack API Docker images" \
-  --project=$GCP_PROJECT_ID
-```
 
 ### Generate the service account key
 

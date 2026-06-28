@@ -372,12 +372,14 @@ Full reference: `.agents/skills/starterpack/references/deployment-cloud.md`.
   `git checkout main && git checkout -b release/prod && git push -u origin release/prod`
 - Set up GitHub Environments (`staging`, `production`) with required reviewers for
   the production approval gate.
-- Create GCP Artifact Registry repo, service account, and IAM bindings (see
-  `deployment-cloud.md` section 9).
+- Create Docker Hub repository (`starterpack-api`) and generate an access token
+  (see `DEPLOYMENT.md` Step 1).
+- Create GCP project, service account, and IAM bindings (see `DEPLOYMENT.md`
+  Step 2). No Artifact Registry needed — images are pushed to Docker Hub.
 - Create Cloudflare Pages projects (`starterpack-app`, `starterpack-web`) without
-  git integration (see `deployment-cloud.md` section 10).
+  git integration (see `DEPLOYMENT.md` Step 3).
 - Create Neon staging branch and store connection strings as GitHub secrets.
-- Populate all GitHub secrets (see `deployment-cloud.md` section 8 for the full matrix).
+- Populate all GitHub secrets (see `DEPLOYMENT.md` Step 5 for the full matrix).
 
 ---
 
@@ -388,3 +390,20 @@ Added genuine TDD structure to the frontends using **Vitest**:
 - `packages/design-system` has `vitest.config.ts` and `vitest.setup.ts`. Example component tests cover the `Button` and the `cn` utility logic.
 - `apps/app` has `test` configurations in `vite.config.ts` (with triple-slash reference for typings).
 - `make test-js` / `make test` runs tests smoothly across all Turborepo frontend apps.
+
+---
+
+## Phase 10 — CD Pipeline (Staging)
+
+Implemented `deploy-staging.yml` — the continuous deployment pipeline triggered
+on push to `main`:
+
+- **Docker Hub**: Images are built and pushed to Docker Hub (not GCP Artifact
+  Registry), keeping the image registry provider-agnostic.
+- **Cloud Run**: Pulls the public image from `docker.io/USERNAME/starterpack-api`
+  at deploy time.
+- **Deploy order enforced**: Migrations → API → Frontends (via `needs:` deps).
+- **CI triggers updated**: `ci.yml` now only runs on PRs and manual dispatch.
+  Push to `main` is handled by the CD pipeline which includes its own test gates.
+- **`DEPLOYMENT.md`**: Step-by-step setup guide with both CLI and UI instructions
+  for Docker Hub, GCP, Cloudflare, and Neon.

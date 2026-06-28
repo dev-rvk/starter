@@ -215,9 +215,9 @@ docker-build: ## Build API Docker image. Usage: make docker-build TAG=abc123
 	  $(API_DIR)
 
 .PHONY: docker-push
-docker-push: ## Push image to registry. Usage: make docker-push TAG=abc123 REGISTRY=us-docker.pkg.dev/…
-	docker tag starterpack-api:$(TAG) $(REGISTRY)/starterpack-api:$(TAG)
-	docker push $(REGISTRY)/starterpack-api:$(TAG)
+docker-push: ## Push image to registry. Usage: make docker-push TAG=abc123 REGISTRY=us-docker.pkg.dev/…/starterpack-api
+	docker tag starterpack-api:$(TAG) $(REGISTRY):$(TAG)
+	docker push $(REGISTRY):$(TAG)
 
 # ── DB migrations (CI / prod) ─────────────────────────────────────────────
 .PHONY: db-migrate-prod

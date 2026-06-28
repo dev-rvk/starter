@@ -273,10 +273,18 @@ mirrors production. Feature branches PR into `main`; `main → release/prod` PR
 triggers the production deploy.
 
 **Infrastructure**:
-- Go API → Docker image → **GCP Cloud Run** (multi-stage Dockerfile at `apps/api/Dockerfile`)
+- Go API → Docker image → **Docker Hub** → **GCP Cloud Run** (multi-stage Dockerfile at `apps/api/Dockerfile`)
 - Frontend apps → static `dist/` → **Cloudflare Pages** (via `wrangler-action`)
 - Database → **Neon Postgres** with branch-per-environment (staging/prod)
 - Migrations → `make db-migrate-prod` (Atlas via `npx @ariga/atlas@0.37.0`)
+
+**CI workflow** (`ci.yml`): Runs on PRs and manual dispatch. Verifies generated
+code, lints/tests Go, and lints/typechecks/tests JS/TS in parallel.
+
+**CD workflow** (`deploy-staging.yml`): Runs on push to `main`. Re-runs all
+checks, builds and pushes Docker image to Docker Hub, runs Atlas migrations,
+deploys API to Cloud Run (pulling from Docker Hub), then deploys frontends to
+Cloudflare Pages. Deploy order: Migrations → API → Frontends.
 
 **CI-specific Makefile targets** (under `## CI / CD` section):
 `test-api`, `test-js`, `test-js-affected`, `lint-api`, `lint-js`, `typecheck`,
@@ -289,7 +297,8 @@ toolchain version) which reads this config automatically. `routeTree.gen.ts`
 files are excluded from Biome linting via `biome.jsonc`.
 
 For complete workflow YAML, secrets matrix, GCP IAM setup, and Cloudflare Pages
-configuration, see `references/deployment-cloud.md`.
+configuration, see `references/deployment-cloud.md`. For step-by-step setup
+instructions with CLI and UI walkthroughs, see `DEPLOYMENT.md` in the repo root.
 
 ## Reference files
 
