@@ -17,7 +17,7 @@
     "@repo/design-system": "workspace:*",
     "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-router": "^1.95.0",
-    "lucide-react": "^0.577.0",
+    "lucide-react": "^1.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
