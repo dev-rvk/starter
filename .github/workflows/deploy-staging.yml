@@ -19,7 +19,7 @@ jobs:
     name: Go Backend (Test)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
@@ -29,7 +29,7 @@ jobs:
     name: Go Backend (Lint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
@@ -40,7 +40,7 @@ jobs:
     name: React Frontends (Lint, Typecheck, Test)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - uses: actions/cache@v4
         with:
@@ -58,7 +58,7 @@ jobs:
     needs: [test-api, lint-api, test-js]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -72,7 +72,7 @@ jobs:
     needs: [build-push]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: make db-migrate-prod
         env:
           DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
@@ -83,7 +83,7 @@ jobs:
     needs: [migrate]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
@@ -107,7 +107,7 @@ jobs:
     needs: [deploy-api]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run turbo run build --filter=app
@@ -125,7 +125,7 @@ jobs:
     needs: [deploy-api]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run turbo run build --filter=web
