@@ -38,7 +38,7 @@
     "chromatic": "^15.2.0",
     "storybook": "^10.2.16",
     "tailwindcss": "^4.2.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vite": "^7.0.0"
   }
 }
