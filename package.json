@@ -24,7 +24,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "jsdom": "^29.1.1",
     "turbo": "^2.9.18",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "ultracite": "7.2.5",
     "vitest": "^4.1.9"
   },
